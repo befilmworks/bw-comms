@@ -2,90 +2,82 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BW COMMS CLOUD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BW-COMMS PRO v3.5</title>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #1a1a1a; color: white; font-family: sans-serif; }
-        .bg-card { background-color: #000000; border: 1px solid rgba(255,255,255,0.1); }
-        .status-free { border-top: 4px solid #10b981; }
-        .status-busy { border-top: 4px solid #ef4444; }
+        body { background-color: #0a0a0a; color: #e5e5e5; font-family: 'Inter', sans-serif; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+        .radio-card { background: #1a1a1a; border: 1px solid #333; transition: all 0.2s; cursor: pointer; }
+        .radio-card.frei { border-top: 4px solid #10b981; }
+        .radio-card.besetzt { border-top: 4px solid #ef4444; background: #2a1a1a; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
     </style>
 </head>
-<body class="p-4">
-    <header class="mb-6 flex justify-between items-center">
-        <h1 class="text-xl font-bold text-yellow-500 underline">BW COMMS PRO v3.5</h1>
-        <div id="status-dot" class="w-3 h-3 rounded-full bg-red-500"></div>
+<body class="p-4 pb-24">
+    <header class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+        <div>
+            <h1 class="text-2xl font-black italic text-yellow-500 tracking-tighter">BEFILM WORKS</h1>
+            <p class="text-[10px] text-white/40 tracking-[0.2em] uppercase">Communications Cloud v3.5</p>
+        </div>
+        <div id="connection-status" class="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+            <span class="status-dot bg-red-500" id="sync-dot"></span>
+            <span class="text-[10px] uppercase font-bold text-white/60">Live</span>
+        </div>
     </header>
 
-    <div id="debug-msg" class="bg-red-900/50 text-red-200 p-2 rounded mb-4 text-xs hidden"></div>
-
-    <div class="bg-card p-4 rounded-xl mb-6 shadow-xl">
-        <div id="chat-box" class="h-40 overflow-y-auto mb-2 text-sm border-b border-white/10 pb-2"></div>
+    <div class="bg-[#111] border border-white/10 rounded-2xl p-4 mb-8 shadow-2xl">
+        <div id="chat-messages" class="h-32 overflow-y-auto mb-4 space-y-2 text-sm"></div>
         <div class="flex gap-2">
-            <input id="chat-in" class="flex-grow bg-white/5 border border-white/20 p-2 rounded text-sm" placeholder="Nachricht...">
-            <button onclick="onSend()" class="bg-yellow-500 text-black px-4 py-2 rounded font-bold">SEND</button>
+            <input id="chat-input" class="flex-grow bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:outline-none focus:border-yellow-500" placeholder="Funkspruch absetzen...">
+            <button onclick="sendMsg()" class="bg-yellow-500 text-black font-bold px-6 rounded-lg hover:bg-yellow-400 transition-colors">SEND</button>
         </div>
     </div>
 
-    <div id="list-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        <p class="col-span-full text-center py-10 opacity-50">Lade Datenbank...</p>
-    </div>
+    <div id="radio-grid" class="grid-container">
+        </div>
 
     <script>
         const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
         const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
-        
-        // Initialisiere Supabase sicher
-        let supabase;
-        try {
-            supabase = window.supabase.createClient(SUB_URL, SUB_KEY);
-        } catch(e) {
-            document.getElementById('debug-msg').innerText = "Supabase Library nicht geladen!";
-            document.getElementById('debug-msg').classList.remove('hidden');
+        const supabase = window.supabase.createClient(SUB_URL, SUB_KEY);
+
+        async function initApp() {
+            // 1. Daten laden
+            const { data: funken } = await supabase.from('funken').select('*').order('id', { ascending: true });
+            if (funken) {
+                renderGrid(funken);
+                document.getElementById('sync-dot').classList.replace('bg-red-500', 'bg-green-500');
+            }
+
+            // 2. Realtime Abo
+            supabase.channel('db-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, payload => {
+                location.reload(); // Einfachster Sync
+            }).subscribe();
         }
 
-        async function loadData() {
-            const dot = document.getElementById('status-dot');
-            try {
-                // Test-Abfrage
-                const { data, error } = await supabase.from('funken').select('*').order('id', { ascending: true });
-                
-                if (error) throw error;
-
-                dot.classList.replace('bg-red-500', 'bg-green-500');
-                renderList(data);
-            } catch (err) {
-                console.error(err);
-                document.getElementById('debug-msg').innerText = "Fehler: " + err.message + " (Hast du SQL ausgeführt?)";
-                document.getElementById('debug-msg').classList.remove('hidden');
-            }
-        }
-
-        function renderList(items) {
-            const grid = document.getElementById('list-grid');
-            if(!items || items.length === 0) {
-                grid.innerHTML = "<p class='col-span-full'>Tabelle leer. Bitte SQL-Befehl in Supabase ausführen!</p>";
-                return;
-            }
+        function renderGrid(items) {
+            const grid = document.getElementById('radio-grid');
             grid.innerHTML = items.map(f => `
-                <div class="bg-card p-3 rounded-lg ${f.status === 'frei' ? 'status-free' : 'status-busy'}">
-                    <div class="text-yellow-500 font-bold">#${f.id}</div>
-                    <div class="text-xs uppercase truncate">${f.user || '---'}</div>
+                <div class="radio-card ${f.status} p-3 rounded-xl shadow-lg relative overflow-hidden">
+                    <div class="text-[10px] text-white/30 font-bold mb-1">UNIT</div>
+                    <div class="text-xl font-black text-yellow-500">#${f.id}</div>
+                    <div class="text-[10px] mt-2 uppercase font-bold truncate ${f.status === 'frei' ? 'text-green-500' : 'text-red-500'}">
+                        ${f.user || (f.status === 'frei' ? 'VERFÜGBAR' : 'BESETZT')}
+                    </div>
                 </div>
             `).join('');
         }
 
-        async function onSend() {
-            const input = document.getElementById('chat-in');
+        async function sendMsg() {
+            const input = document.getElementById('chat-input');
             if(!input.value) return;
-            await supabase.from('chat_messages').insert([{sender: 'User', text: input.value, type: 'user'}]);
+            await supabase.from('chat_messages').insert([{sender: 'Admin', text: input.value}]);
             input.value = '';
-            loadData(); // Refresh
         }
 
-        loadData();
+        initApp();
     </script>
 </body>
 </html>
