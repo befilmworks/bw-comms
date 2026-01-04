@@ -228,18 +228,25 @@
             input.value = '';
         }
 
-        function parseAndQueue(rawVal) {
-            const t = rawVal.toLowerCase();
-            const numbers = rawVal.match(/\d+/g);
-            if(numbers && /frei|leer|zurück|weg|raus|abgegeben/i.test(t)) {
-                numbers.forEach(n => actionQueue.push({ type: 'radio', id: parseInt(n), isFree: true }));
-                return;
-            }
-            rawVal.split(/\n|,| und /).forEach(seg => {
-                const res = parseSingleSegment(seg.trim());
-                if(res) actionQueue.push(res);
-            });
-        }
+       function parseAndQueue(rawVal) {
+    const t = rawVal.toLowerCase().trim();
+    
+    // NEU: Befehl zum Chat leeren
+    if (t === 'clear chat' || t === 'chat leeren' || t === 'clean') {
+        actionQueue.push({ type: 'clearChat' });
+        return;
+    }
+
+    const numbers = rawVal.match(/\d+/g);
+    if(numbers && /frei|leer|zurück|weg|raus|abgegeben/i.test(t)) {
+        numbers.forEach(n => actionQueue.push({ type: 'radio', id: parseInt(n), isFree: true }));
+        return;
+    }
+    rawVal.split(/\n|,| und /).forEach(seg => {
+        const res = parseSingleSegment(seg.trim());
+        if(res) actionQueue.push(res);
+    });
+}
 
         function parseSingleSegment(text) {
             const t = text.toLowerCase().trim();
@@ -253,21 +260,41 @@
             return { type: 'radio', id: parseInt(numbers[0]), name, isFree, isDefekt, hasHeadset };
         }
 
-        async function processQueue() {
-            if (actionQueue.length === 0 || currentPendingAction) return;
-            const action = actionQueue.shift();
-            const radio = funken.find(r => r.id === action.id);
-            if(!radio) { processQueue(); return; }
-            if(action.isFree) { await clearFunke(action.id); processQueue(); return; }
-            if(action.isDefekt) { await toggleBroken(action.id); processQueue(); return; }
-            if(action.name) {
-                if(radio.isBroken) { showConfirm("⚠️ DEFEKT", `#${radio.id} defekt. An ${action.name}?`, action); return; }
-                if(radio.status === 'besetzt' && radio.user !== action.name) { showConfirm("✋ BELEGT", `#${radio.id} belegt von ${radio.user}.`, action); return; }
-                applyAssignment(radio, action);
-                processQueue();
-            } else if(action.hasHeadset) { await toggleHeadset(action.id); processQueue(); return; }
-        }
+       async function processQueue() {
+    if (actionQueue.length === 0 || currentPendingAction) return;
+    const action = actionQueue.shift();
+    const radio = funken.find(r => r.id === action.id);
 
+    // Chat leeren Logik
+    if(action.type === 'clearChat') {
+        await sb.from('chat_messages').delete().neq('id', 0);
+        messages = [];
+        updateChat();
+        processQueue();
+        return;
+    }
+
+    if(!radio) { processQueue(); return; }
+    if(action.isFree) { await clearFunke(action.id); processQueue(); return; }
+    
+    // NEU: Spezial-Abfrage bei Defekt via Chat
+    if(action.isDefekt) {
+        if (radio.status === 'besetzt') {
+            showConfirm("⚠️ DEFEKT & BELEGT", `#${radio.id} ist noch belegt. Soll das Gerät beim Markieren als DEFEKT auch gleich freigegeben werden?`, action, true);
+            return;
+        }
+        await updateFunkeDB(action.id, { is_broken: true });
+        processQueue();
+        return;
+    }
+
+    if(action.name) {
+        if(radio.isBroken) { showConfirm("⚠️ DEFEKT", `#${radio.id} defekt. An ${action.name}?`, action); return; }
+        if(radio.status === 'besetzt' && radio.user !== action.name) { showConfirm("✋ BELEGT", `#${radio.id} belegt von ${radio.user}.`, action); return; }
+        applyAssignment(radio, action);
+        processQueue();
+    } else if(action.hasHeadset) { await toggleHeadset(action.id); processQueue(); return; }
+}
         function applyAssignment(radio, action) {
             updateFunkeDB(radio.id, { status: 'besetzt', user: action.name, has_headset: action.hasHeadset || radio.hasHeadset });
         }
@@ -316,7 +343,40 @@
         function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); document.getElementById('p-name-input').value = config.projectName; document.getElementById('scount').value = config.visibleCount; }
         function saveSettings() { config.projectName = document.getElementById('p-name-input').value.toUpperCase() || "PROJEKTTITEL"; config.visibleCount = parseInt(document.getElementById('scount').value) || 20; localStorage.setItem('bw_config', JSON.stringify(config)); document.getElementById('header-project').innerText = config.projectName; renderList(); toggleSettings(); }
         function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
-        function showConfirm(title, msg, action) { currentPendingAction = action; document.getElementById('confirm-title').innerText = title; document.getElementById('confirm-msg').innerText = msg; document.getElementById('confirm-modal').classList.remove('hidden'); document.getElementById('confirm-yes').onclick = () => closeConfirm(true); }
+       function showConfirm(title, msg, action, isDefektQuery = false) {
+    currentPendingAction = action;
+    document.getElementById('confirm-title').innerText = title;
+    document.getElementById('confirm-msg').innerText = msg;
+    document.getElementById('confirm-modal').classList.remove('hidden');
+    
+    // JA-BUTTON
+    const yesBtn = document.getElementById('confirm-yes');
+    yesBtn.onclick = async () => {
+        if (isDefektQuery) {
+            await updateFunkeDB(action.id, { is_broken: true, status: 'frei', user: '', has_headset: false });
+        } else {
+            applyAssignment(funken.find(r => r.id === action.id), action);
+        }
+        document.getElementById('confirm-modal').classList.add('hidden');
+        currentPendingAction = null;
+        processQueue();
+    };
+
+    // NEIN/ABBRECHEN-BUTTON (mit neuer Logik für Defekt)
+    const modalDiv = document.getElementById('confirm-modal');
+    const cancelBtn = modalDiv.querySelector('button[onclick="closeConfirm(false)"]');
+    
+    // Wir überschreiben das onclick temporär für die Defekt-Abfrage
+    cancelBtn.onclick = async () => {
+        if (isDefektQuery) {
+            // Nur Defekt markieren, User bleibt drin
+            await updateFunkeDB(action.id, { is_broken: true });
+        }
+        document.getElementById('confirm-modal').classList.add('hidden');
+        currentPendingAction = null;
+        processQueue();
+    };
+}
         function closeConfirm(approved) { document.getElementById('confirm-modal').classList.add('hidden'); if(approved && currentPendingAction) applyAssignment(funken.find(r => r.id === currentPendingAction.id), currentPendingAction); currentPendingAction = null; processQueue(); }
 
         // GESTURE (Identisch)
