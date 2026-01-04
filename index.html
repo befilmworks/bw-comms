@@ -67,27 +67,27 @@
     </main>
 
     <script>
+        // CONFIG & SUPABASE SETUP
         const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
         const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
-        // KORREKTUR: Name 'sb' statt 'supabase', um Konflikt zu vermeiden
+        // FIXED: Benenne die Instanz 'sb', um Konflikt mit der Library 'supabase' zu vermeiden
         const sb = supabase.createClient(SUB_URL, SUB_KEY);
 
-        let config = { visibleCount: 100, view: 'detail' };
+        let config = { visibleCount: 40, view: 'detail' };
         let funken = [];
         let messages = [];
 
         async function init() {
             await fetchAllData();
-            setView('detail'); // Initial Ansicht setzen
+            setView('detail'); 
             
-            // REALTIME
-            sb.channel('db-changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => fetchAllData())
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, payload => {
-                    messages.push(payload.new);
-                    updateChatUI();
-                })
-                .subscribe();
+            sb.channel('custom-all-channel')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => { fetchAllData(); })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => { 
+                messages.push(payload.new);
+                updateChatUI();
+            })
+            .subscribe();
         }
 
         async function fetchAllData() {
@@ -96,7 +96,7 @@
             const { data: cData } = await sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
             
             if (fData) {
-                funken = fData.map(f => ({ ...f, hasHeadset: f.has_headset, isBroken: f.is_broken }));
+                funken = fData.map(f => ({ ...f, user: f.user || '', hasHeadset: f.has_headset, isBroken: f.is_broken }));
                 renderList();
             }
             if (cData) {
@@ -108,12 +108,15 @@
 
         function setSyncStatus(status) {
             const el = document.getElementById('sync-indicator');
-            if(!el) return;
-            el.className = `w-2 h-2 rounded-full mt-2 mr-2 transition-colors duration-500 ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
+            if(el) el.className = `w-2 h-2 rounded-full mt-2 mr-2 transition-colors duration-500 ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
         }
 
         async function updateFunkeDB(id, updates) {
             await sb.from('funken').update(updates).eq('id', id);
+        }
+
+        async function sendChatMessage(type, text) {
+            await sb.from('chat_messages').insert([{ sender: 'User', text, type }]);
         }
 
         function renderList() {
@@ -125,16 +128,14 @@
                 let textColor = f.isBroken ? 'color-broken' : (f.status === 'besetzt' ? 'color-busy' : 'color-free');
                 
                 if (config.view === 'matrix') {
-                    return `
-                    <div onclick="jumpToDetail(${f.id})" class="bg-card-black border border-white/5 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer min-h-[70px] active:scale-90 transition">
+                    return `<div onclick="jumpToDetail(${f.id})" class="bg-card-black border border-white/5 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer min-h-[70px] active:scale-90 transition">
                         <span class="font-numeric font-bold text-xs text-bw-gold">#${f.id}</span>
                         <div class="w-full h-1 my-1 rounded-full ${statusColor}"></div>
                         <span class="text-[8px] font-bold uppercase truncate w-full text-gray-400">${f.user || '---'}</span>
                     </div>`;
                 }
 
-                return `
-                <div class="relative pt-2" id="card-${f.id}">
+                return `<div class="relative pt-2" id="card-${f.id}">
                     <div class="absolute top-0 left-8 right-8 h-2 rounded-t-full ${statusColor}"></div>
                     <div class="card-body bg-card-black p-5 rounded-[2rem] border border-white/5 flex flex-col relative z-10 custom-shadow">
                         <div class="flex justify-between items-start mb-3">
@@ -145,7 +146,7 @@
                                 <button onclick="clearFunke(${f.id})" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-600 rounded-xl">✕</button>
                             </div>
                         </div>
-                        <input type="text" value="${f.user || ''}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
+                        <input type="text" value="${f.user}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
                         <div class="flex justify-between items-center mt-3">
                             <span class="text-[9px] font-bold uppercase tracking-widest ${textColor}">${f.isBroken ? 'DEFEKT' : (f.status === 'frei' ? 'Frei' : 'Besetzt')}</span>
                         </div>
@@ -179,31 +180,53 @@
             const input = document.getElementById('chat-in');
             const val = input.value.trim();
             if(!val) return;
-            await sb.from('chat_messages').insert([{ sender: 'User', text: val, type: 'user' }]);
+            await sendChatMessage('user', val);
+            parseAndExecute(val);
             input.value = '';
+        }
+
+        function parseAndExecute(rawVal) {
+            const t = rawVal.toLowerCase();
+            const numbers = rawVal.match(/\d+/g);
+            if(!numbers) return;
+
+            if(/frei|leer|zurück|weg|raus|abgegeben/i.test(t)) {
+                numbers.forEach(n => clearFunke(parseInt(n)));
+            } else {
+                const name = rawVal.replace(/[0-9]/g, '').trim().toUpperCase();
+                if(name.length > 2) {
+                    numbers.forEach(n => manualUpdate(parseInt(n), name));
+                }
+            }
         }
 
         function updateChatUI() {
             const box = document.getElementById('chat-box');
             if(!box) return;
-            box.innerHTML = messages.map(m => `
-                <div class="flex ${m.sender === 'System' ? 'justify-start' : 'justify-end'} mt-2">
-                    <div class="max-w-[85%] p-3 rounded-2xl ${m.sender === 'System' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div>
-                </div>`).join('');
+            box.innerHTML = messages.map(m => `<div class="flex ${m.sender === 'System' ? 'justify-start' : 'justify-end'} mt-2"><div class="max-w-[85%] p-3 rounded-2xl ${m.sender === 'System' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div></div>`).join('');
             box.scrollTop = box.scrollHeight;
         }
 
         function setView(mode) {
             config.view = mode;
-            const grid = document.getElementById('list-grid');
-            if(grid) grid.className = mode === 'detail' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
             renderList();
+            const isDetail = mode === 'detail';
+            const btnD = document.getElementById('btn-detail');
+            const btnM = document.getElementById('btn-matrix');
+            if(btnD) btnD.className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
+            if(btnM) btnM.className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${!isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
+            const grid = document.getElementById('list-grid');
+            if(grid) grid.className = isDetail ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
         }
 
         function updateStats() {
-            document.getElementById('stat-free').innerText = `FREE: ${funken.filter(f => f.status === 'frei' && !f.isBroken).length}`;
-            document.getElementById('stat-busy').innerText = `BUSY: ${funken.filter(f => f.status === 'besetzt').length}`;
-            document.getElementById('stat-broken').innerText = `FAIL: ${funken.filter(f => f.isBroken).length}`;
+            const sFree = document.getElementById('stat-free');
+            const sBusy = document.getElementById('stat-busy');
+            const sBroken = document.getElementById('stat-broken');
+            if(!sFree) return;
+            sFree.innerText = `FREE: ${funken.filter(f => f.status === 'frei' && !f.isBroken).length}`;
+            sBusy.innerText = `BUSY: ${funken.filter(f => f.status === 'besetzt').length}`;
+            sBroken.innerText = `FAIL: ${funken.filter(f => f.isBroken).length}`;
         }
 
         function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
