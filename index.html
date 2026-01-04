@@ -1,264 +1,62 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BW COMMS | CLOUD</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Alef:wght@400;700&display=swap');
-        body { font-family: 'Alef', sans-serif; background-color: #1a1a1a; color: #ffffff; -webkit-tap-highlight-color: transparent; overflow-x: hidden; overscroll-behavior-y: contain; }
-        .font-numeric { font-family: Arial, Helvetica, sans-serif; }
-        .text-bw-gold { color: #dec628; }
-        .bg-bw-gold { background-color: #dec628; }
-        .color-free { color: #10b981; } .bg-free { background-color: #10b981; }
-        .color-busy { color: #ef4444; } .bg-busy { background-color: #ef4444; }
-        .color-broken { color: #f59e0b; } .bg-broken { background-color: #f59e0b; }
-        .bg-card-black { background-color: #000000; }
-        .custom-shadow { box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.7); }
-        @keyframes highlight-pulse { 0% { border-color: #dec628; box-shadow: 0 0 0px #dec628; } 50% { border-color: #dec628; box-shadow: 0 0 20px #dec628; } 100% { border-color: rgba(255,255,255,0.1); box-shadow: 0 0 0px #dec628; } }
-        .jump-highlight { animation: highlight-pulse 1.5s ease-out; }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col">
+<script>
+    // CONFIG & SUPABASE SETUP
+    const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
+    const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
+    
+    // Die Instanz muss anders heißen als die Library selbst
+    const sb = supabase.createClient(SUB_URL, SUB_KEY); 
 
-    <header class="sticky top-0 bg-black p-4 flex items-center justify-between shadow-2xl z-50 border-b border-white/10">
-        <div class="flex items-center gap-3">
-            <img src="https://i.ibb.co/Lz0D7mF/Logo-quadratisch.png" alt="BW" class="h-10 w-10 object-contain">
-            <div>
-                <h1 id="header-project" class="text-white font-bold text-lg tracking-tight uppercase leading-tight">BW CLOUD v3.4</h1>
-                <div class="flex gap-2.5 mt-0.5">
-                    <span id="stat-free" class="text-[9px] font-bold text-free font-numeric uppercase">FREE: -</span>
-                    <span id="stat-busy" class="text-[9px] font-bold text-busy font-numeric uppercase">BUSY: -</span>
-                    <span id="stat-broken" class="text-[9px] font-bold text-broken font-numeric uppercase">FAIL: -</span>
-                </div>
-            </div>
-        </div>
-        <div class="flex gap-2">
-            <div id="sync-indicator" class="w-2 h-2 rounded-full bg-gray-600 mt-2 mr-2"></div>
-            <button onclick="toggleOptions()" class="p-2 bg-white/5 rounded-xl border border-white/10 text-bw-gold">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-            </button>
-        </div>
-    </header>
+    let config = { visibleCount: 100, view: 'detail' }; // Auf 100 erhöht
+    let funken = [];
+    let messages = [];
 
-    <div id="options-menu" class="fixed inset-y-0 right-0 w-72 bg-black/95 backdrop-blur-xl z-[60] transform translate-x-full transition-transform duration-300 border-l border-white/10 p-6 flex flex-col gap-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-bw-gold font-bold uppercase tracking-widest text-sm">Menü</h2>
-            <button onclick="toggleOptions()" class="text-white">✕</button>
-        </div>
-        <div class="space-y-4">
-            <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
-                <p class="text-[10px] text-gray-500 uppercase font-bold mb-2">Ansicht</p>
-                <div class="flex gap-2">
-                    <button onclick="setView('detail')" id="btn-detail" class="flex-grow p-2 rounded-lg text-[10px] font-bold uppercase transition">Detail</button>
-                    <button onclick="setView('matrix')" id="btn-matrix" class="flex-grow p-2 rounded-lg text-[10px] font-bold uppercase transition">Matrix</button>
-                </div>
-            </div>
-            <input type="text" id="search-in" oninput="renderList()" placeholder="SUCHEN..." class="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs font-bold uppercase outline-none focus:border-bw-gold transition">
-            <button onclick="resetAll()" class="w-full bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-xl text-[10px] font-bold uppercase">Alle zurücksetzen</button>
-        </div>
-    </div>
+    // INITIAL LOAD
+    async function init() {
+        await fetchAllData();
+        renderList();
+        updateChatUI();
+        
+        // REALTIME SUBSCRIPTION (sb statt supabase)
+        sb.channel('custom-all-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => { fetchAllData(); })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => { 
+            messages.push(payload.new);
+            updateChatUI();
+        })
+        .subscribe();
+    }
 
-    <main class="flex-grow flex flex-col p-4 lg:p-6 gap-4 overflow-y-auto" id="main-scroll">
-        <section class="w-full lg:max-w-4xl mx-auto flex-shrink-0">
-            <div class="bg-card-black rounded-[2rem] shadow-2xl p-5 border border-white/5 custom-shadow">
-                <div id="chat-box" class="h-64 overflow-y-auto space-y-3 mb-3 p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-white"></div>
-                <div class="relative">
-                    <textarea id="chat-in" rows="2" onkeydown="handleChatKey(event)" class="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-bw-gold text-white transition resize-none font-bold placeholder-gray-700 text-sm" placeholder="Befehl..."></textarea>
-                    <button onclick="onSend()" class="w-full mt-2 bg-bw-gold text-black font-bold p-3.5 rounded-2xl uppercase text-[11px] tracking-[0.15em] active:scale-95 transition">Senden</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="touch-area" class="w-full">
-            <div id="list-grid" class="grid gap-4 pb-24"></div>
-        </section>
-    </main>
-
-    <script>
-        const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
-        const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
-        const sb = supabase.createClient(SUB_URL, SUB_KEY);
-
-        let config = { visibleCount: 100, view: 'detail' };
-        let funken = [];
-        let messages = [];
-
-        async function init() {
-            await fetchAllData();
-            setView('detail'); 
-            
-            sb.channel('db-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => fetchAllData())
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => { 
-                messages.push(payload.new);
-                updateChatUI();
-            })
-            .subscribe();
-        }
-
-        async function fetchAllData() {
-            setSyncStatus('syncing');
-            const { data: fData } = await sb.from('funken').select('*').order('id', { ascending: true });
-            const { data: cData } = await sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
-            
-            if (fData) {
-                funken = fData.map(f => ({ ...f, hasHeadset: f.has_headset, isBroken: f.is_broken }));
-                renderList();
-            }
-            if (cData) {
-                messages = cData.reverse();
-                updateChatUI();
-            }
-            setSyncStatus('idle');
-        }
-
-        function setSyncStatus(status) {
-            const el = document.getElementById('sync-indicator');
-            if(el) el.className = `w-2 h-2 rounded-full mt-2 mr-2 transition-colors duration-500 ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
-        }
-
-        function toggleOptions() {
-            const menu = document.getElementById('options-menu');
-            menu.classList.toggle('translate-x-full');
-        }
-
-        function setView(mode) {
-            config.view = mode;
-            const btnD = document.getElementById('btn-detail');
-            const btnM = document.getElementById('btn-matrix');
-            btnD.className = mode === 'detail' ? 'flex-grow p-2 rounded-lg text-[10px] font-bold uppercase bg-bw-gold text-black' : 'flex-grow p-2 rounded-lg text-[10px] font-bold uppercase bg-white/5 text-white';
-            btnM.className = mode === 'matrix' ? 'flex-grow p-2 rounded-lg text-[10px] font-bold uppercase bg-bw-gold text-black' : 'flex-grow p-2 rounded-lg text-[10px] font-bold uppercase bg-white/5 text-white';
+    async function fetchAllData() {
+        setSyncStatus('syncing');
+        // Abfragen über 'sb'
+        const { data: fData } = await sb.from('funken').select('*').order('id', { ascending: true });
+        const { data: cData } = await sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
+        
+        if (fData) {
+            funken = fData.map(f => ({ ...f, user: f.user || '', hasHeadset: f.has_headset, isBroken: f.is_broken }));
             renderList();
         }
-
-        function renderList() {
-            const grid = document.getElementById('list-grid');
-            const searchTerm = document.getElementById('search-in')?.value.toLowerCase() || "";
-            if (!grid) return;
-            
-            grid.className = config.view === 'detail' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
-
-            const filtered = funken.filter(f => 
-                f.id.toString().includes(searchTerm) || (f.user && f.user.toLowerCase().includes(searchTerm))
-            );
-
-            grid.innerHTML = filtered.map(f => {
-                let statusColor = f.isBroken ? 'bg-broken' : (f.status === 'besetzt' ? 'bg-busy' : 'bg-free');
-                let textColor = f.isBroken ? 'color-broken' : (f.status === 'besetzt' ? 'color-busy' : 'color-free');
-                
-                if (config.view === 'matrix') {
-                    return `<div onclick="jumpToDetail(${f.id})" class="bg-card-black border border-white/5 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer min-h-[70px] active:scale-90 transition">
-                        <span class="font-numeric font-bold text-xs text-bw-gold">#${f.id}</span>
-                        <div class="w-full h-1 my-1 rounded-full ${statusColor}"></div>
-                        <span class="text-[8px] font-bold uppercase truncate w-full text-gray-400">${f.user || '---'}</span>
-                    </div>`;
-                }
-
-                return `<div class="relative pt-2" id="card-${f.id}">
-                    <div class="absolute top-0 left-8 right-8 h-2 rounded-t-full ${statusColor}"></div>
-                    <div class="card-body bg-card-black p-5 rounded-[2rem] border border-white/5 flex flex-col relative z-10 custom-shadow">
-                        <div class="flex justify-between items-start mb-3">
-                            <span class="font-numeric font-bold text-2xl tracking-tighter text-bw-gold">#${f.id}</span>
-                            <div class="flex gap-1.5">
-                                <button onclick="toggleBroken(${f.id})" class="w-10 h-10 flex items-center justify-center rounded-xl ${f.isBroken ? 'bg-broken text-black' : 'bg-white/5 text-gray-600'}">⚠️</button>
-                                <button onclick="toggleHeadset(${f.id})" class="w-10 h-10 flex items-center justify-center rounded-xl ${f.hasHeadset ? 'bg-bw-gold text-black' : 'bg-white/5 text-gray-600'}">🎧</button>
-                                <button onclick="clearFunke(${f.id})" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-600 rounded-xl">✕</button>
-                            </div>
-                        </div>
-                        <input type="text" value="${f.user || ''}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
-                        <div class="flex justify-between items-center mt-3">
-                            <span class="text-[9px] font-bold uppercase tracking-widest ${textColor}">${f.isBroken ? 'DEFEKT' : (f.status === 'frei' ? 'Frei' : 'Besetzt')}</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-            updateStats();
+        if (cData) {
+            messages = cData.reverse();
+            updateChatUI();
         }
+        setSyncStatus('idle');
+    }
 
-        async function manualUpdate(id, val) {
-            const user = val.toUpperCase();
-            const status = user.trim() === "" ? 'frei' : 'besetzt';
-            await sb.from('funken').update({ user, status }).eq('id', id);
-        }
+    function setSyncStatus(status) {
+        const el = document.getElementById('sync-indicator');
+        el.className = `w-2 h-2 rounded-full mt-2 mr-2 transition-colors duration-500 ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
+    }
 
-        async function toggleBroken(id) {
-            const f = funken.find(x => x.id === id);
-            await sb.from('funken').update({ is_broken: !f.isBroken }).eq('id', id);
-        }
+    // DATABASE ACTIONS (sb statt supabase)
+    async function updateFunkeDB(id, updates) {
+        const { error } = await sb.from('funken').update(updates).eq('id', id);
+        if (error) console.error(error);
+    }
 
-        async function toggleHeadset(id) {
-            const f = funken.find(x => x.id === id);
-            await sb.from('funken').update({ has_headset: !f.hasHeadset }).eq('id', id);
-        }
+    async function sendChatMessage(type, text) {
+        await sb.from('chat_messages').insert([{ sender: 'System', text, type }]);
+    }
 
-        async function clearFunke(id) {
-            await sb.from('funken').update({ status: 'frei', user: '', has_headset: false, is_broken: false }).eq('id', id);
-        }
-
-        async function resetAll() {
-            if(!confirm("ALLE FUNKEN ZURÜCKSETZEN?")) return;
-            for(let i=1; i<=100; i++) await clearFunke(i);
-            toggleOptions();
-        }
-
-        async function onSend() {
-            const input = document.getElementById('chat-in');
-            const val = input.value.trim();
-            if(!val) return;
-            await sb.from('chat_messages').insert([{ sender: 'User', text: val, type: 'user' }]);
-            parseAndExecute(val);
-            input.value = '';
-        }
-
-        function parseAndExecute(rawVal) {
-            const t = rawVal.toLowerCase();
-            const numbers = rawVal.match(/\d+/g);
-            if(!numbers) return;
-
-            if(/frei|leer|zurück|weg|raus|abgegeben/i.test(t)) {
-                numbers.forEach(n => clearFunke(parseInt(n)));
-            } else {
-                const name = rawVal.replace(/[0-9]/g, '').trim().toUpperCase();
-                if(name.length >= 2) {
-                    numbers.forEach(n => manualUpdate(parseInt(n), name));
-                }
-            }
-        }
-
-        function updateChatUI() {
-            const box = document.getElementById('chat-box');
-            if(!box) return;
-            box.innerHTML = messages.map(m => `
-                <div class="flex ${m.sender === 'System' ? 'justify-start' : 'justify-end'} mt-2">
-                    <div class="max-w-[85%] p-3 rounded-2xl ${m.sender === 'System' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div>
-                </div>`).join('');
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function updateStats() {
-            document.getElementById('stat-free').innerText = `FREE: ${funken.filter(f => f.status === 'frei' && !f.isBroken).length}`;
-            document.getElementById('stat-busy').innerText = `BUSY: ${funken.filter(f => f.status === 'besetzt').length}`;
-            document.getElementById('stat-broken').innerText = `FAIL: ${funken.filter(f => f.isBroken).length}`;
-        }
-
-        function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
-        function jumpToDetail(id) {
-            setView('detail');
-            setTimeout(() => {
-                const el = document.getElementById(`card-${id}`);
-                if(el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    const body = el.querySelector('.card-body');
-                    body.classList.add('jump-highlight');
-                    setTimeout(() => body.classList.remove('jump-highlight'), 1500);
-                }
-            }, 100);
-        }
-
-        init();
-    </script>
-</body>
-</html>
+    // ... Rest deiner renderList() und UI Funktionen bleibt absolut gleich ...
+</script>
