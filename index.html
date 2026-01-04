@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BW FILM-WORKS | v3.5 PRO CLOUD</title>
+    <title>BW FILM-WORKS | v3.3 PRO CLOUD</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -17,7 +17,14 @@
         .color-broken { color: #f59e0b; } .bg-broken { background-color: #f59e0b; }
         .bg-card-black { background-color: #000000; }
         .custom-shadow { box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.7); }
+        #list-grid { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         body { overscroll-behavior-y: contain; }
+        @keyframes highlight-pulse {
+            0% { border-color: #dec628; box-shadow: 0 0 0px #dec628; }
+            50% { border-color: #dec628; box-shadow: 0 0 20px #dec628; }
+            100% { border-color: rgba(255,255,255,0.1); box-shadow: 0 0 0px #dec628; }
+        }
+        .jump-highlight { animation: highlight-pulse 1.5s ease-out; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -26,46 +33,61 @@
         <div class="flex items-center gap-3">
             <img src="https://i.ibb.co/Lz0D7mF/Logo-quadratisch.png" alt="BW" class="h-10 w-10 object-contain">
             <div>
-                <h1 id="header-project" class="text-white font-bold text-lg tracking-tight uppercase leading-tight text-bw-gold">BW CLOUD</h1>
+                <h1 id="header-project" class="text-white font-bold text-lg tracking-tight uppercase leading-tight">LADE...</h1>
                 <div class="flex gap-2.5 mt-0.5">
-                    <span id="stat-free" class="text-[9px] font-bold text-free font-numeric uppercase leading-none">FREE: -</span>
-                    <span id="stat-busy" class="text-[9px] font-bold text-busy font-numeric uppercase leading-none">BUSY: -</span>
-                    <span id="stat-broken" class="text-[9px] font-bold text-broken font-numeric uppercase leading-none">FAIL: -</span>
+                    <span id="stat-free" class="text-[9px] font-bold text-free font-numeric uppercase">FREE: -</span>
+                    <span id="stat-busy" class="text-[9px] font-bold text-busy font-numeric uppercase">BUSY: -</span>
+                    <span id="stat-broken" class="text-[9px] font-bold text-broken font-numeric uppercase">FAIL: -</span>
                 </div>
             </div>
         </div>
         <div class="flex gap-2">
             <div id="sync-indicator" class="w-2 h-2 rounded-full bg-gray-600 mt-4 mr-1"></div>
-            <button onclick="toggleSettings()" class="bg-white/5 border border-white/10 text-white w-10 h-10 flex items-center justify-center rounded-xl active:scale-90 transition">
+            <div class="bg-white/5 p-1 rounded-xl flex gap-1 border border-white/10">
+                <button onclick="setView('detail')" id="btn-detail" class="w-8 h-8 flex items-center justify-center rounded-lg transition">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/></svg>
+                </button>
+                <button onclick="setView('matrix')" id="btn-matrix" class="w-8 h-8 flex items-center justify-center rounded-lg transition">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg>
+                </button>
+            </div>
+            <button onclick="toggleSettings()" class="bg-white/5 border border-white/10 text-white w-10 h-10 flex items-center justify-center rounded-xl">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path fill-rule="evenodd" d="M18.14 10.45l2.13-1.07a1 1 0 00.38-1.37l-1.5-2.6a1 1 0 00-1.29-.43l-2.22.9a8 8 0 00-1.44-.83l-.33-2.38A1 1 0 0013 2h-3a1 1 0 00-.99.87l-.33 2.38a8 8 0 00-1.44.83l-2.22-.9a1 1 0 00-1.29.43l-1.5 2.6a1 1 0 00.38 1.37l2.13 1.07c-.04.4-.06.8-.06 1.21s.02.82.06 1.22l-2.13 1.07a1 1 0 00-.38 1.37l1.5 2.6a1 1 0 001.29.43l2.22-.9c.45.33.93.61 1.44.83l.33 2.38a1 1 0 001 .87h3a1 1 0 00.99-.87l.33-2.38c.51-.22.99-.5 1.44-.83l2.22.9a1 1 0 001.29-.43l1.5-2.6a1 1 0 00-.38-1.37l-2.13-1.07c.04-.4.06-.8.06-1.22s-.02-.81-.06-1.21z" clip-rule="evenodd"/></svg>
             </button>
         </div>
     </header>
 
-    <main class="flex-grow flex flex-col p-4 gap-4 overflow-y-auto">
-        <section class="w-full lg:max-w-4xl mx-auto">
-            <div class="bg-card-black rounded-[2rem] p-5 border border-white/5 custom-shadow">
-                <div class="flex justify-between items-center mb-2 px-2">
-                    <span class="text-[10px] font-bold text-gray-600 uppercase tracking-widest leading-none">Funk-Log</span>
-                    <button onclick="confirmClearChat()" class="text-gray-600 hover:text-red-500 transition p-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                </div>
-                <div id="chat-box" class="h-64 overflow-y-auto space-y-3 mb-3 p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-white text-sm"></div>
+    <main class="flex-grow flex flex-col p-4 lg:p-6 gap-4 overflow-y-auto" id="main-scroll">
+        <section class="w-full lg:max-w-4xl mx-auto flex-shrink-0">
+            <div class="bg-card-black rounded-[2rem] shadow-2xl p-5 border border-white/5 custom-shadow">
+                <div id="chat-box" class="h-80 lg:h-64 overflow-y-auto space-y-3 mb-3 p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-white"></div>
                 <div class="relative">
-                    <textarea id="chat-in" rows="2" onkeydown="handleChatKey(event)" class="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-bw-gold text-white transition resize-none font-bold placeholder-gray-800 text-sm" placeholder="z.B. 12 Max, 1-5 Hans..."></textarea>
-                    <button onclick="onSend()" class="w-full mt-2 bg-bw-gold text-black font-bold p-4 rounded-2xl uppercase text-[11px] tracking-widest active:scale-95 transition">Senden</button>
+                    <textarea id="chat-in" rows="2" onkeydown="handleChatKey(event)" class="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-bw-gold text-white transition resize-none font-bold placeholder-gray-700 text-sm" placeholder="Befehl..."></textarea>
+                    <button onclick="onSend()" class="w-full mt-2 bg-bw-gold text-black font-bold p-3.5 rounded-2xl uppercase text-[11px] tracking-[0.15em] active:scale-95 transition">Senden</button>
                 </div>
             </div>
         </section>
-        <section id="list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-24"></section>
+
+        <div class="w-full flex items-center gap-4 my-2 opacity-30">
+            <div class="h-[1px] bg-white/20 flex-grow"></div>
+            <div class="w-1.5 h-1.5 rounded-full bg-bw-gold"></div>
+            <div class="h-[1px] bg-white/20 flex-grow"></div>
+        </div>
+
+        <section id="touch-area" class="w-full">
+            <div id="list-grid" class="grid gap-4 pb-24"></div>
+        </section>
     </main>
 
-    <div id="confirm-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] hidden flex items-center justify-center p-6 text-center">
-        <div class="bg-[#111] border border-white/10 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl">
-            <h3 id="confirm-title" class="font-bold text-xl mb-2 uppercase text-bw-gold tracking-tight">Bestätigung</h3>
+    <div id="confirm-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] hidden flex items-center justify-center p-6">
+        <div class="bg-[#111] border border-white/10 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl text-center">
+            <div class="text-4xl mb-4">⚠️</div>
+            <h3 id="confirm-title" class="font-bold text-xl mb-2 uppercase text-bw-gold">Bestätigung</h3>
             <p id="confirm-msg" class="text-gray-400 text-sm mb-8 leading-relaxed"></p>
-            <div id="confirm-buttons" class="flex flex-col gap-3"></div>
+            <div class="flex flex-col gap-3">
+                <button id="confirm-yes" class="w-full bg-bw-gold text-black font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Ja, ausführen</button>
+                <button onclick="closeConfirm(false)" class="w-full bg-white/5 text-gray-500 font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Abbrechen</button>
+            </div>
         </div>
     </div>
 
@@ -76,147 +98,304 @@
                 <input type="text" id="p-name-input" placeholder="Projekt Name" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold uppercase text-white outline-none text-center">
                 <input type="number" id="scount" placeholder="Anzahl Geräte" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold text-2xl text-center text-bw-gold outline-none">
                 <button onclick="saveSettings()" class="w-full bg-bw-gold text-black font-bold p-5 rounded-2xl uppercase tracking-widest">Speichern</button>
-                <div class="h-px bg-white/10 w-full my-2"></div>
-                <button onclick="confirmClearAllRadios()" class="w-full bg-red-500/10 text-red-500 border border-red-500/20 font-bold p-4 rounded-2xl uppercase text-[10px] tracking-widest">Alle Geräte freigeben</button>
                 <button onclick="toggleSettings()" class="w-full text-gray-600 font-bold text-[10px] uppercase mt-2">Schließen</button>
             </div>
         </div>
     </div>
+
     <script>
+        // SUPABASE CONFIG
         const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
         const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
         const sb = supabase.createClient(SUB_URL, SUB_KEY);
 
-        let config = JSON.parse(localStorage.getItem('bw_config')) || { visibleCount: 20, projectName: "BW CLOUD" };
+        // DATA STATE
+        let config = JSON.parse(localStorage.getItem('bw_config')) || { visibleCount: 100, projectName: "BW CLOUD", view: 'detail' };
         let funken = [];
         let actionQueue = [];
         let currentPendingAction = null;
+        let messages = [];
 
+        // INITIAL LOAD & REALTIME
         async function init() {
             await fetchAllData();
+            setView(config.view);
             document.getElementById('header-project').innerText = config.projectName;
-            sb.channel('db-sync').on('postgres_changes',{event:'*',schema:'public',table:'funken'},()=>fetchAllData()).on('postgres_changes',{event:'*',schema:'public',table:'chat_messages'},()=>fetchChat()).subscribe();
-            fetchChat();
+
+            sb.channel('db-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => fetchAllData())
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
+                messages.push(payload.new);
+                updateChat();
+            })
+            .subscribe();
         }
 
         async function fetchAllData() {
             setSyncStatus('syncing');
-            const { data } = await sb.from('funken').select('*').order('id', { ascending: true });
-            if (data) { funken = data; renderList(); updateHeaderStats(); }
+            const { data: fData } = await sb.from('funken').select('*').order('id', { ascending: true });
+            const { data: cData } = await sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
+            
+            if (fData) {
+                funken = fData.map(f => ({ ...f, hasHeadset: f.has_headset, isBroken: f.is_broken }));
+                renderList();
+            }
+            if (cData) {
+                messages = cData.reverse();
+                updateChat();
+            }
             setSyncStatus('idle');
         }
 
-        async function fetchChat() {
-            const { data } = await sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
-            if (data) {
-                const chatBox = document.getElementById('chat-box');
-                chatBox.innerHTML = data.reverse().map(m => `<div class="bg-white/5 p-2 rounded-xl border border-white/5"><span class="text-bw-gold font-bold">Log:</span> ${m.message}</div>`).join('');
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
+        function setSyncStatus(status) {
+            const el = document.getElementById('sync-indicator');
+            if(el) el.className = `w-2 h-2 rounded-full mt-4 mr-1 transition-colors ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
         }
 
-        function setSyncStatus(s) { document.getElementById('sync-indicator').className = `w-2 h-2 rounded-full mt-4 mr-1 ${s==='syncing'?'bg-bw-gold animate-pulse':'bg-green-500'}`; }
+        // DB ACTIONS
+        async function updateFunkeDB(id, updates) {
+            await sb.from('funken').update(updates).eq('id', id);
+        }
 
+        async function sendChatMessage(sender, text) {
+            await sb.from('chat_messages').insert([{ sender, text, type: sender === 'System' ? 'bot' : 'user' }]);
+        }
+
+        // UI RENDER (Original Logik)
         function renderList() {
             const grid = document.getElementById('list-grid');
+            if (!grid) return;
             grid.innerHTML = funken.slice(0, config.visibleCount).map(f => {
-                const statusColor = f.is_broken ? 'bg-broken' : (f.status === 'besetzt' ? 'bg-busy' : 'bg-free');
-                return `<div class="bg-card-black p-5 rounded-[2rem] border border-white/5 custom-shadow">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="font-numeric font-bold text-2xl text-bw-gold">#${f.id}</span>
-                        <div class="flex gap-2">
-                            <button onclick="updateFunkeDB(${f.id}, {is_broken:!${f.is_broken}})" class="w-10 h-10 flex items-center justify-center rounded-xl ${f.is_broken?'bg-broken text-black':'bg-white/5 text-gray-500'}">⚠️</button>
-                            <button onclick="updateFunkeDB(${f.id}, {has_headset:!${f.has_headset}})" class="w-10 h-10 flex items-center justify-center rounded-xl ${f.has_headset?'bg-bw-gold text-black':'bg-white/5 text-gray-500'}">🎧</button>
-                            <button onclick="clearFunke(${f.id})" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-500 rounded-xl">✕</button>
+                let statusColor = f.isBroken ? 'bg-broken' : (f.status === 'besetzt' ? 'bg-busy' : 'bg-free');
+                let textColor = f.isBroken ? 'color-broken' : (f.status === 'besetzt' ? 'color-busy' : 'color-free');
+                
+                if (config.view === 'matrix') {
+                    return `<div onclick="jumpToDetail(${f.id})" class="bg-card-black border border-white/5 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer min-h-[70px] active:scale-90 transition">
+                        <span class="font-numeric font-bold text-xs text-bw-gold">#${f.id}</span>
+                        <div class="w-full h-1 my-1 rounded-full ${statusColor}"></div>
+                        <span class="text-[8px] font-bold uppercase truncate w-full text-gray-400">${f.user || '---'}</span>
+                    </div>`;
+                }
+
+                return `<div class="relative pt-2" id="card-${f.id}">
+                    <div class="absolute top-0 left-8 right-8 h-2 rounded-t-full ${statusColor}"></div>
+                    <div class="card-body bg-card-black p-5 rounded-[2rem] border border-white/5 flex flex-col relative z-10 custom-shadow transition-all duration-500">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="font-numeric font-bold text-2xl tracking-tighter text-bw-gold">#${f.id}</span>
+                            <div class="flex gap-1.5">
+                                <button onclick="toggleBroken(${f.id})" class="w-10 h-10 flex items-center justify-center rounded-xl ${f.isBroken ? 'bg-broken text-black' : 'bg-white/5 text-gray-600'}">⚠️</button>
+                                <button onclick="toggleHeadset(${f.id})" class="w-10 h-10 flex items-center justify-center rounded-xl ${f.hasHeadset ? 'bg-bw-gold text-black' : 'bg-white/5 text-gray-600'}">🎧</button>
+                                <button onclick="clearFunke(${f.id})" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-600 rounded-xl">✕</button>
+                            </div>
+                        </div>
+                        <input type="text" value="${f.user || ''}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="text-[9px] font-bold uppercase tracking-widest ${textColor}">${f.isBroken ? 'DEFEKT' : (f.status === 'frei' ? 'Frei' : 'Besetzt')}</span>
+                            ${f.hasHeadset ? '<span class="text-[10px]">🎧</span>' : ''}
                         </div>
                     </div>
-                    <div class="font-bold uppercase text-xs ${f.is_broken?'text-broken':(f.status==='besetzt'?'text-red-500':'text-green-500')} mb-1">${f.status}</div>
-                    <div class="text-white font-bold uppercase truncate">${f.user || '---'}</div>
                 </div>`;
             }).join('');
+            updateHeaderStats();
         }
 
-        async function updateFunkeDB(id, up) { await sb.from('funken').update(up).eq('id', id); }
-        async function clearFunke(id) { await updateFunkeDB(id, { status:'frei', user:'', has_headset:false, is_broken:false }); }
-
-        function showConfirm(title, msg, action, isDefektQuery = false) {
-            currentPendingAction = action;
-            document.getElementById('confirm-title').innerText = title;
-            document.getElementById('confirm-msg').innerText = msg;
-            const container = document.getElementById('confirm-buttons');
-            container.innerHTML = '';
-            document.getElementById('confirm-modal').classList.remove('hidden');
-
-            if (isDefektQuery) {
-                const btnJa = createBtn("Ja (Frei machen)", "bg-bw-gold text-black");
-                btnJa.onclick = async () => { await updateFunkeDB(action.id, { is_broken:true, status:'frei', user:'', has_headset:false }); closeConfirm(); };
-                const btnNein = createBtn("Nein (Besetzt lassen)", "bg-white/10 text-white");
-                btnNein.onclick = async () => { await updateFunkeDB(action.id, { is_broken:true }); closeConfirm(); };
-                const btnAbbruch = createBtn("Abbrechen", "bg-transparent text-gray-500");
-                btnAbbruch.onclick = () => closeConfirm();
-                container.append(btnJa, btnNein, btnAbbruch);
-            } else {
-                const btnOk = createBtn("Ausführen", "bg-bw-gold text-black");
-                btnOk.onclick = async () => { if(action.type==='custom') await action.exe(); else await applyAction(action); closeConfirm(); };
-                const btnAbbruch = createBtn("Abbrechen", "bg-transparent text-gray-500");
-                btnAbbruch.onclick = () => closeConfirm();
-                container.append(btnOk, btnAbbruch);
-            }
+        // ORIGINAL LOGIK FUNKTIONEN (Jetzt mit Cloud-Sync)
+        async function manualUpdate(id, val) { 
+            const user = val.toUpperCase();
+            const status = user.trim() === "" ? 'frei' : 'besetzt';
+            await updateFunkeDB(id, { user, status });
+        }
+        async function toggleBroken(id) { 
+            const f = funken.find(x => x.id === id);
+            await updateFunkeDB(id, { is_broken: !f.isBroken });
+        }
+        async function toggleHeadset(id) { 
+            const f = funken.find(x => x.id === id);
+            await updateFunkeDB(id, { has_headset: !f.hasHeadset });
+        }
+        async function clearFunke(id) { 
+            await updateFunkeDB(id, { status: 'frei', user: '', has_headset: false, is_broken: false });
         }
 
-        function createBtn(txt, cls) { 
-            const b = document.createElement('button'); 
-            b.className = "w-full font-bold p-4 rounded-2xl uppercase text-xs tracking-widest " + cls;
-            b.innerText = txt; return b; 
-        }
-
-        function closeConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); currentPendingAction = null; }
-
+        // CHAT & QUEUE (Identisch zu v3.3)
         async function onSend() {
             const input = document.getElementById('chat-in');
             const val = input.value.trim();
             if(!val) return;
-            await sb.from('chat_messages').insert([{ message: val }]);
-            parseCommand(val);
+            await sendChatMessage('User', val);
+            parseAndQueue(val);
+            processQueue();
             input.value = '';
         }
 
-        function parseCommand(val) {
-            const t = val.toLowerCase();
-            const numbers = val.match(/\d+/g);
-            if (!numbers) return;
-            const id = parseInt(numbers[0]);
-            const radio = funken.find(f => f.id === id);
-            if (!radio) return;
+       function parseAndQueue(rawVal) {
+    const t = rawVal.toLowerCase().trim();
+    
+    // NEU: Befehl zum Chat leeren
+    if (t === 'clear chat' || t === 'chat leeren' || t === 'clean') {
+        actionQueue.push({ type: 'clearChat' });
+        return;
+    }
 
-            if (t.includes('defekt') || t.includes('kaputt')) {
-                if (radio.status === 'besetzt') {
-                    showConfirm("Defekt-Status", `#${id} ist noch belegt. Auch freigeben?`, {id:id}, true);
-                } else {
-                    updateFunkeDB(id, { is_broken: true });
-                }
-            } else {
-                const name = val.replace(/\d+/g, '').trim();
-                if(name) updateFunkeDB(id, { user: name.toUpperCase(), status: 'besetzt', is_broken: false });
-            }
+    const numbers = rawVal.match(/\d+/g);
+    if(numbers && /frei|leer|zurück|weg|raus|abgegeben/i.test(t)) {
+        numbers.forEach(n => actionQueue.push({ type: 'radio', id: parseInt(n), isFree: true }));
+        return;
+    }
+    rawVal.split(/\n|,| und /).forEach(seg => {
+        const res = parseSingleSegment(seg.trim());
+        if(res) actionQueue.push(res);
+    });
+}
+
+        function parseSingleSegment(text) {
+            const t = text.toLowerCase().trim();
+            const numbers = text.match(/\d+/g);
+            if(!numbers) return null;
+            const isDefekt = /defekt|kaputt|broken|schaden/i.test(t);
+            const hasHeadset = /headset|kopfhörer|🎧/i.test(t);
+            const isFree = /frei|leer|zurück|weg|raus|abgegeben/i.test(t);
+            const stopWords = ['die','der','das','ist','an','für','mit','hat','nummer','funke','gerät','bei','jetzt','ein','headset','kopfhörer','defekt','kaputt','schaden','und','zurück','frei'];
+            const name = text.split(/\s+/).filter(w => !stopWords.includes(w.toLowerCase()) && !/\d/.test(w)).join(' ').toUpperCase();
+            return { type: 'radio', id: parseInt(numbers[0]), name, isFree, isDefekt, hasHeadset };
         }
 
-        function confirmClearChat() { showConfirm("Chat leeren?", "Alle Log-Nachrichten löschen?", {type:'custom', exe: async () => await sb.from('chat_messages').delete().neq('id', 0)}); }
-        function confirmClearAllRadios() { showConfirm("Reset", "Alle Geräte (außer Defekte) freigeben?", {type:'custom', exe: async () => await sb.from('funken').update({status:'frei', user:'', has_headset:false}).eq('is_broken', false)}); }
-        function updateHeaderStats() {
-            const f = funken.slice(0, config.visibleCount);
-            document.getElementById('stat-free').innerText = "FREE: " + f.filter(x=>x.status==='frei' && !x.is_broken).length;
-            document.getElementById('stat-busy').innerText = "BUSY: " + f.filter(x=>x.status==='besetzt' && !x.is_broken).length;
-            document.getElementById('stat-broken').innerText = "FAIL: " + f.filter(x=>x.is_broken).length;
+       async function processQueue() {
+    if (actionQueue.length === 0 || currentPendingAction) return;
+    const action = actionQueue.shift();
+    const radio = funken.find(r => r.id === action.id);
+
+    // Chat leeren Logik
+    if(action.type === 'clearChat') {
+        await sb.from('chat_messages').delete().neq('id', 0);
+        messages = [];
+        updateChat();
+        processQueue();
+        return;
+    }
+
+    if(!radio) { processQueue(); return; }
+    if(action.isFree) { await clearFunke(action.id); processQueue(); return; }
+    
+    // NEU: Spezial-Abfrage bei Defekt via Chat
+    if(action.isDefekt) {
+        if (radio.status === 'besetzt') {
+            showConfirm("⚠️ DEFEKT & BELEGT", `#${radio.id} ist noch belegt. Soll das Gerät beim Markieren als DEFEKT auch gleich freigegeben werden?`, action, true);
+            return;
         }
-        function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); }
-        function saveSettings() { 
-            config.projectName = document.getElementById('p-name-input').value.toUpperCase() || "BW CLOUD";
-            config.visibleCount = parseInt(document.getElementById('scount').value) || 20;
+        await updateFunkeDB(action.id, { is_broken: true });
+        processQueue();
+        return;
+    }
+
+    if(action.name) {
+        if(radio.isBroken) { showConfirm("⚠️ DEFEKT", `#${radio.id} defekt. An ${action.name}?`, action); return; }
+        if(radio.status === 'besetzt' && radio.user !== action.name) { showConfirm("✋ BELEGT", `#${radio.id} belegt von ${radio.user}.`, action); return; }
+        applyAssignment(radio, action);
+        processQueue();
+    } else if(action.hasHeadset) { await toggleHeadset(action.id); processQueue(); return; }
+}
+        function applyAssignment(radio, action) {
+            updateFunkeDB(radio.id, { status: 'besetzt', user: action.name, has_headset: action.hasHeadset || radio.hasHeadset });
+        }
+
+        // VIEW LOGIK (Identisch)
+        function setView(mode) {
+            config.view = mode;
             localStorage.setItem('bw_config', JSON.stringify(config));
-            location.reload();
+            renderList();
+            const isDetail = mode === 'detail';
+            document.getElementById('btn-detail').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
+            document.getElementById('btn-matrix').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${!isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
+            document.getElementById('list-grid').className = isDetail ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
         }
-        function handleChatKey(e) { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
+
+        function updateChat() {
+            const box = document.getElementById('chat-box');
+            if(!box) return;
+            box.innerHTML = messages.map(m => `<div class="flex ${m.sender === 'System' || m.type === 'bot' ? 'justify-start' : 'justify-end'} mt-2"><div class="max-w-[85%] p-3 rounded-2xl ${m.sender === 'System' || m.type === 'bot' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div></div>`).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function updateHeaderStats() {
+            const currentFunken = funken.slice(0, config.visibleCount);
+            const brokenCount = currentFunken.filter(f => f.isBroken).length;
+            const busyCount = currentFunken.filter(f => f.status === 'besetzt' && !f.isBroken).length;
+            const freeCount = config.visibleCount - brokenCount - busyCount;
+            document.getElementById('stat-free').innerText = `FREE: ${freeCount}`;
+            document.getElementById('stat-busy').innerText = `BUSY: ${busyCount}`;
+            document.getElementById('stat-broken').innerText = `FAIL: ${brokenCount}`;
+        }
+
+        // HELPERS
+        function jumpToDetail(id) {
+            setView('detail');
+            setTimeout(() => {
+                const el = document.getElementById(`card-${id}`);
+                if(el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const body = el.querySelector('.card-body');
+                    body.classList.add('jump-highlight');
+                    setTimeout(() => body.classList.remove('jump-highlight'), 1500);
+                }
+            }, 100);
+        }
+        function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); document.getElementById('p-name-input').value = config.projectName; document.getElementById('scount').value = config.visibleCount; }
+        function saveSettings() { config.projectName = document.getElementById('p-name-input').value.toUpperCase() || "PROJEKTTITEL"; config.visibleCount = parseInt(document.getElementById('scount').value) || 20; localStorage.setItem('bw_config', JSON.stringify(config)); document.getElementById('header-project').innerText = config.projectName; renderList(); toggleSettings(); }
+        function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
+       function showConfirm(title, msg, action, isDefektQuery = false) {
+    currentPendingAction = action;
+    document.getElementById('confirm-title').innerText = title;
+    document.getElementById('confirm-msg').innerText = msg;
+    document.getElementById('confirm-modal').classList.remove('hidden');
+    
+    // JA-BUTTON
+    const yesBtn = document.getElementById('confirm-yes');
+    yesBtn.onclick = async () => {
+        if (isDefektQuery) {
+            await updateFunkeDB(action.id, { is_broken: true, status: 'frei', user: '', has_headset: false });
+        } else {
+            applyAssignment(funken.find(r => r.id === action.id), action);
+        }
+        document.getElementById('confirm-modal').classList.add('hidden');
+        currentPendingAction = null;
+        processQueue();
+    };
+
+    // NEIN/ABBRECHEN-BUTTON (mit neuer Logik für Defekt)
+    const modalDiv = document.getElementById('confirm-modal');
+    const cancelBtn = modalDiv.querySelector('button[onclick="closeConfirm(false)"]');
+    
+    // Wir überschreiben das onclick temporär für die Defekt-Abfrage
+    cancelBtn.onclick = async () => {
+        if (isDefektQuery) {
+            // Nur Defekt markieren, User bleibt drin
+            await updateFunkeDB(action.id, { is_broken: true });
+        }
+        document.getElementById('confirm-modal').classList.add('hidden');
+        currentPendingAction = null;
+        processQueue();
+    };
+}
+        function closeConfirm(approved) { document.getElementById('confirm-modal').classList.add('hidden'); if(approved && currentPendingAction) applyAssignment(funken.find(r => r.id === currentPendingAction.id), currentPendingAction); currentPendingAction = null; processQueue(); }
+
+        // GESTURE (Identisch)
+        let initialDist = -1;
+        const mainArea = document.getElementById('main-scroll');
+        mainArea.addEventListener('touchstart', (e) => { if (e.touches.length === 2) initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); }, {passive: true});
+        mainArea.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialDist > 0) {
+                const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                const diff = currentDist - initialDist;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0 && config.view !== 'detail') setView('detail');
+                    if (diff < 0 && config.view !== 'matrix') setView('matrix');
+                    initialDist = currentDist;
+                }
+            }
+        }, {passive: true});
+        mainArea.addEventListener('touchend', () => { initialDist = -1; });
+
         init();
     </script>
 </body>
