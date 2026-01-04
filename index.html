@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BW COMMS | CLOUD</title>
+    <title>BW FILM-WORKS | v3.3 PRO CLOUD</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Alef:wght@400;700&display=swap');
-        body { font-family: 'Alef', sans-serif; background-color: #1a1a1a; color: #ffffff; -webkit-tap-highlight-color: transparent; overflow-x: hidden; overscroll-behavior-y: contain; }
+        body { font-family: 'Alef', sans-serif; background-color: #1a1a1a; color: #ffffff; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .font-numeric { font-family: Arial, Helvetica, sans-serif; }
         .text-bw-gold { color: #dec628; }
         .bg-bw-gold { background-color: #dec628; }
@@ -17,7 +17,13 @@
         .color-broken { color: #f59e0b; } .bg-broken { background-color: #f59e0b; }
         .bg-card-black { background-color: #000000; }
         .custom-shadow { box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.7); }
-        @keyframes highlight-pulse { 0% { border-color: #dec628; box-shadow: 0 0 0px #dec628; } 50% { border-color: #dec628; box-shadow: 0 0 20px #dec628; } 100% { border-color: rgba(255,255,255,0.1); box-shadow: 0 0 0px #dec628; } }
+        #list-grid { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        body { overscroll-behavior-y: contain; }
+        @keyframes highlight-pulse {
+            0% { border-color: #dec628; box-shadow: 0 0 0px #dec628; }
+            50% { border-color: #dec628; box-shadow: 0 0 20px #dec628; }
+            100% { border-color: rgba(255,255,255,0.1); box-shadow: 0 0 0px #dec628; }
+        }
         .jump-highlight { animation: highlight-pulse 1.5s ease-out; }
     </style>
 </head>
@@ -27,7 +33,7 @@
         <div class="flex items-center gap-3">
             <img src="https://i.ibb.co/Lz0D7mF/Logo-quadratisch.png" alt="BW" class="h-10 w-10 object-contain">
             <div>
-                <h1 id="header-project" class="text-white font-bold text-lg tracking-tight uppercase leading-tight">BW CLOUD v3.4</h1>
+                <h1 id="header-project" class="text-white font-bold text-lg tracking-tight uppercase leading-tight">LADE...</h1>
                 <div class="flex gap-2.5 mt-0.5">
                     <span id="stat-free" class="text-[9px] font-bold text-free font-numeric uppercase">FREE: -</span>
                     <span id="stat-busy" class="text-[9px] font-bold text-busy font-numeric uppercase">BUSY: -</span>
@@ -36,11 +42,18 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <div id="sync-indicator" class="w-2 h-2 rounded-full bg-gray-600 mt-2 mr-2"></div>
+            <div id="sync-indicator" class="w-2 h-2 rounded-full bg-gray-600 mt-4 mr-1"></div>
             <div class="bg-white/5 p-1 rounded-xl flex gap-1 border border-white/10">
-                <button onclick="setView('detail')" id="btn-detail" class="w-8 h-8 flex items-center justify-center rounded-lg transition"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/></svg></button>
-                <button onclick="setView('matrix')" id="btn-matrix" class="w-8 h-8 flex items-center justify-center rounded-lg transition"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg></button>
+                <button onclick="setView('detail')" id="btn-detail" class="w-8 h-8 flex items-center justify-center rounded-lg transition">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/></svg>
+                </button>
+                <button onclick="setView('matrix')" id="btn-matrix" class="w-8 h-8 flex items-center justify-center rounded-lg transition">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg>
+                </button>
             </div>
+            <button onclick="toggleSettings()" class="bg-white/5 border border-white/10 text-white w-10 h-10 flex items-center justify-center rounded-xl">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path fill-rule="evenodd" d="M18.14 10.45l2.13-1.07a1 1 0 00.38-1.37l-1.5-2.6a1 1 0 00-1.29-.43l-2.22.9a8 8 0 00-1.44-.83l-.33-2.38A1 1 0 0013 2h-3a1 1 0 00-.99.87l-.33 2.38a8 8 0 00-1.44.83l-2.22-.9a1 1 0 00-1.29.43l-1.5 2.6a1 1 0 00.38 1.37l2.13 1.07c-.04.4-.06.8-.06 1.21s.02.82.06 1.22l-2.13 1.07a1 1 0 00-.38 1.37l1.5 2.6a1 1 0 001.29.43l2.22-.9c.45.33.93.61 1.44.83l.33 2.38a1 1 0 001 .87h3a1 1 0 00.99-.87l.33-2.38c.51-.22.99-.5 1.44-.83l2.22.9a1 1 0 001.29-.43l1.5-2.6a1 1 0 00-.38-1.37l-2.13-1.07c.04-.4.06-.8.06-1.22s-.02-.81-.06-1.21z" clip-rule="evenodd"/></svg>
+            </button>
         </div>
     </header>
 
@@ -66,28 +79,54 @@
         </section>
     </main>
 
+    <div id="confirm-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] hidden flex items-center justify-center p-6">
+        <div class="bg-[#111] border border-white/10 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl text-center">
+            <div class="text-4xl mb-4">⚠️</div>
+            <h3 id="confirm-title" class="font-bold text-xl mb-2 uppercase text-bw-gold">Bestätigung</h3>
+            <p id="confirm-msg" class="text-gray-400 text-sm mb-8 leading-relaxed"></p>
+            <div class="flex flex-col gap-3">
+                <button id="confirm-yes" class="w-full bg-bw-gold text-black font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Ja, ausführen</button>
+                <button onclick="closeConfirm(false)" class="w-full bg-white/5 text-gray-500 font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-black border border-white/10 rounded-[3rem] p-10 w-full max-w-md text-center">
+            <h2 class="font-bold text-2xl mb-8 uppercase text-bw-gold tracking-tight font-numeric">Setup</h2>
+            <div class="space-y-6">
+                <input type="text" id="p-name-input" placeholder="Projekt Name" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold uppercase text-white outline-none text-center">
+                <input type="number" id="scount" placeholder="Anzahl Geräte" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold text-2xl text-center text-bw-gold outline-none">
+                <button onclick="saveSettings()" class="w-full bg-bw-gold text-black font-bold p-5 rounded-2xl uppercase tracking-widest">Speichern</button>
+                <button onclick="toggleSettings()" class="w-full text-gray-600 font-bold text-[10px] uppercase mt-2">Schließen</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // CONFIG & SUPABASE SETUP
+        // SUPABASE CONFIG
         const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
-		const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
+        const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
         const sb = supabase.createClient(SUB_URL, SUB_KEY);
 
-        let config = { visibleCount: 40, view: 'detail' };
+        // DATA STATE
+        let config = JSON.parse(localStorage.getItem('bw_config')) || { visibleCount: 100, projectName: "BW CLOUD", view: 'detail' };
         let funken = [];
+        let actionQueue = [];
+        let currentPendingAction = null;
         let messages = [];
 
-        // INITIAL LOAD
+        // INITIAL LOAD & REALTIME
         async function init() {
             await fetchAllData();
-            renderList();
-            updateChatUI();
-            
-            // REALTIME SUBSCRIPTION
-            sb.channel('custom-all-channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => { fetchAllData(); })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => { 
+            setView(config.view);
+            document.getElementById('header-project').innerText = config.projectName;
+
+            sb.channel('db-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => fetchAllData())
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
                 messages.push(payload.new);
-                updateChatUI();
+                updateChat();
             })
             .subscribe();
         }
@@ -95,56 +134,52 @@
         async function fetchAllData() {
             setSyncStatus('syncing');
             const { data: fData } = await sb.from('funken').select('*').order('id', { ascending: true });
-			const { data: cData } = await sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
+            const { data: cData } = await sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
             
             if (fData) {
-                funken = fData.map(f => ({ ...f, user: f.user || '', hasHeadset: f.has_headset, isBroken: f.is_broken }));
+                funken = fData.map(f => ({ ...f, hasHeadset: f.has_headset, isBroken: f.is_broken }));
                 renderList();
             }
             if (cData) {
                 messages = cData.reverse();
-                updateChatUI();
+                updateChat();
             }
             setSyncStatus('idle');
         }
 
         function setSyncStatus(status) {
             const el = document.getElementById('sync-indicator');
-            el.className = `w-2 h-2 rounded-full mt-2 mr-2 transition-colors duration-500 ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
+            if(el) el.className = `w-2 h-2 rounded-full mt-4 mr-1 transition-colors ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
         }
 
-        // DATABASE ACTIONS
+        // DB ACTIONS
         async function updateFunkeDB(id, updates) {
-            const { error } = await sb.from('funken').update(updates).eq('id', id);
-            if (error) console.error(error);
+            await sb.from('funken').update(updates).eq('id', id);
         }
 
-        async function sendChatMessage(type, text) {
-            await sb.from('chat_messages').insert([{ sender: 'System', text, type }]);
+        async function sendChatMessage(sender, text) {
+            await sb.from('chat_messages').insert([{ sender, text, type: sender === 'System' ? 'bot' : 'user' }]);
         }
 
-        // RENDER LOGIC (Identisch zu v3.3 aber mit DB-Anbindung)
+        // UI RENDER (Original Logik)
         function renderList() {
             const grid = document.getElementById('list-grid');
-            if (!funken.length) return;
-            
+            if (!grid) return;
             grid.innerHTML = funken.slice(0, config.visibleCount).map(f => {
                 let statusColor = f.isBroken ? 'bg-broken' : (f.status === 'besetzt' ? 'bg-busy' : 'bg-free');
                 let textColor = f.isBroken ? 'color-broken' : (f.status === 'besetzt' ? 'color-busy' : 'color-free');
                 
                 if (config.view === 'matrix') {
-                    return `
-                    <div onclick="jumpToDetail(${f.id})" class="bg-card-black border border-white/5 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer min-h-[70px] active:scale-90 transition">
+                    return `<div onclick="jumpToDetail(${f.id})" class="bg-card-black border border-white/5 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer min-h-[70px] active:scale-90 transition">
                         <span class="font-numeric font-bold text-xs text-bw-gold">#${f.id}</span>
                         <div class="w-full h-1 my-1 rounded-full ${statusColor}"></div>
                         <span class="text-[8px] font-bold uppercase truncate w-full text-gray-400">${f.user || '---'}</span>
                     </div>`;
                 }
 
-                return `
-                <div class="relative pt-2" id="card-${f.id}">
+                return `<div class="relative pt-2" id="card-${f.id}">
                     <div class="absolute top-0 left-8 right-8 h-2 rounded-t-full ${statusColor}"></div>
-                    <div class="card-body bg-card-black p-5 rounded-[2rem] border border-white/5 flex flex-col relative z-10 custom-shadow">
+                    <div class="card-body bg-card-black p-5 rounded-[2rem] border border-white/5 flex flex-col relative z-10 custom-shadow transition-all duration-500">
                         <div class="flex justify-between items-start mb-3">
                             <span class="font-numeric font-bold text-2xl tracking-tighter text-bw-gold">#${f.id}</span>
                             <div class="flex gap-1.5">
@@ -153,65 +188,94 @@
                                 <button onclick="clearFunke(${f.id})" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-600 rounded-xl">✕</button>
                             </div>
                         </div>
-                        <input type="text" value="${f.user}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
+                        <input type="text" value="${f.user || ''}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
                         <div class="flex justify-between items-center mt-3">
                             <span class="text-[9px] font-bold uppercase tracking-widest ${textColor}">${f.isBroken ? 'DEFEKT' : (f.status === 'frei' ? 'Frei' : 'Besetzt')}</span>
+                            ${f.hasHeadset ? '<span class="text-[10px]">🎧</span>' : ''}
                         </div>
                     </div>
                 </div>`;
             }).join('');
-            updateStats();
+            updateHeaderStats();
         }
 
-        // ACTIONS
-        async function manualUpdate(id, val) {
+        // ORIGINAL LOGIK FUNKTIONEN (Jetzt mit Cloud-Sync)
+        async function manualUpdate(id, val) { 
             const user = val.toUpperCase();
             const status = user.trim() === "" ? 'frei' : 'besetzt';
             await updateFunkeDB(id, { user, status });
         }
-
-        async function toggleBroken(id) {
+        async function toggleBroken(id) { 
             const f = funken.find(x => x.id === id);
             await updateFunkeDB(id, { is_broken: !f.isBroken });
         }
-
-        async function toggleHeadset(id) {
+        async function toggleHeadset(id) { 
             const f = funken.find(x => x.id === id);
             await updateFunkeDB(id, { has_headset: !f.hasHeadset });
         }
-
-        async function clearFunke(id) {
-            await updateFunkeDB(id, { status: 'frei', user: '', has_headset: false });
+        async function clearFunke(id) { 
+            await updateFunkeDB(id, { status: 'frei', user: '', has_headset: false, is_broken: false });
         }
 
-        // CHAT LOGIC (v3.4 adaptiert für Cloud)
+        // CHAT & QUEUE (Identisch zu v3.3)
         async function onSend() {
             const input = document.getElementById('chat-in');
             const val = input.value.trim();
             if(!val) return;
-            await sendChatMessage('user', val);
-            parseAndExecute(val);
+            await sendChatMessage('User', val);
+            parseAndQueue(val);
+            processQueue();
             input.value = '';
         }
 
-        function parseAndExecute(rawVal) {
+        function parseAndQueue(rawVal) {
             const t = rawVal.toLowerCase();
             const numbers = rawVal.match(/\d+/g);
             if(numbers && /frei|leer|zurück|weg|raus|abgegeben/i.test(t)) {
-                numbers.forEach(n => clearFunke(parseInt(n)));
+                numbers.forEach(n => actionQueue.push({ type: 'radio', id: parseInt(n), isFree: true }));
                 return;
             }
-            // ... (Hier kann die komplexe Parsing-Logik aus v3.3 wieder rein)
+            rawVal.split(/\n|,| und /).forEach(seg => {
+                const res = parseSingleSegment(seg.trim());
+                if(res) actionQueue.push(res);
+            });
         }
 
-        function updateChatUI() {
-            const box = document.getElementById('chat-box');
-            box.innerHTML = messages.map(m => `<div class="flex ${m.type === 'bot' ? 'justify-start' : 'justify-end'} mt-2"><div class="max-w-[85%] p-3 rounded-2xl ${m.type === 'bot' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div></div>`).join('');
-            box.scrollTop = box.scrollHeight;
+        function parseSingleSegment(text) {
+            const t = text.toLowerCase().trim();
+            const numbers = text.match(/\d+/g);
+            if(!numbers) return null;
+            const isDefekt = /defekt|kaputt|broken|schaden/i.test(t);
+            const hasHeadset = /headset|kopfhörer|🎧/i.test(t);
+            const isFree = /frei|leer|zurück|weg|raus|abgegeben/i.test(t);
+            const stopWords = ['die','der','das','ist','an','für','mit','hat','nummer','funke','gerät','bei','jetzt','ein','headset','kopfhörer','defekt','kaputt','schaden','und','zurück','frei'];
+            const name = text.split(/\s+/).filter(w => !stopWords.includes(w.toLowerCase()) && !/\d/.test(w)).join(' ').toUpperCase();
+            return { type: 'radio', id: parseInt(numbers[0]), name, isFree, isDefekt, hasHeadset };
         }
 
+        async function processQueue() {
+            if (actionQueue.length === 0 || currentPendingAction) return;
+            const action = actionQueue.shift();
+            const radio = funken.find(r => r.id === action.id);
+            if(!radio) { processQueue(); return; }
+            if(action.isFree) { await clearFunke(action.id); processQueue(); return; }
+            if(action.isDefekt) { await toggleBroken(action.id); processQueue(); return; }
+            if(action.name) {
+                if(radio.isBroken) { showConfirm("⚠️ DEFEKT", `#${radio.id} defekt. An ${action.name}?`, action); return; }
+                if(radio.status === 'besetzt' && radio.user !== action.name) { showConfirm("✋ BELEGT", `#${radio.id} belegt von ${radio.user}.`, action); return; }
+                applyAssignment(radio, action);
+                processQueue();
+            } else if(action.hasHeadset) { await toggleHeadset(action.id); processQueue(); return; }
+        }
+
+        function applyAssignment(radio, action) {
+            updateFunkeDB(radio.id, { status: 'besetzt', user: action.name, has_headset: action.hasHeadset || radio.hasHeadset });
+        }
+
+        // VIEW LOGIK (Identisch)
         function setView(mode) {
             config.view = mode;
+            localStorage.setItem('bw_config', JSON.stringify(config));
             renderList();
             const isDetail = mode === 'detail';
             document.getElementById('btn-detail').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
@@ -219,14 +283,24 @@
             document.getElementById('list-grid').className = isDetail ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
         }
 
-        function updateStats() {
-            const current = funken.slice(0, config.visibleCount);
-            document.getElementById('stat-free').innerText = `FREE: ${current.filter(f => f.status === 'frei' && !f.isBroken).length}`;
-            document.getElementById('stat-busy').innerText = `BUSY: ${current.filter(f => f.status === 'besetzt').length}`;
-            document.getElementById('stat-broken').innerText = `FAIL: ${current.filter(f => f.isBroken).length}`;
+        function updateChat() {
+            const box = document.getElementById('chat-box');
+            if(!box) return;
+            box.innerHTML = messages.map(m => `<div class="flex ${m.sender === 'System' || m.type === 'bot' ? 'justify-start' : 'justify-end'} mt-2"><div class="max-w-[85%] p-3 rounded-2xl ${m.sender === 'System' || m.type === 'bot' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div></div>`).join('');
+            box.scrollTop = box.scrollHeight;
         }
 
-        function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
+        function updateHeaderStats() {
+            const currentFunken = funken.slice(0, config.visibleCount);
+            const brokenCount = currentFunken.filter(f => f.isBroken).length;
+            const busyCount = currentFunken.filter(f => f.status === 'besetzt' && !f.isBroken).length;
+            const freeCount = config.visibleCount - brokenCount - busyCount;
+            document.getElementById('stat-free').innerText = `FREE: ${freeCount}`;
+            document.getElementById('stat-busy').innerText = `BUSY: ${busyCount}`;
+            document.getElementById('stat-broken').innerText = `FAIL: ${brokenCount}`;
+        }
+
+        // HELPERS
         function jumpToDetail(id) {
             setView('detail');
             setTimeout(() => {
@@ -239,6 +313,28 @@
                 }
             }, 100);
         }
+        function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); document.getElementById('p-name-input').value = config.projectName; document.getElementById('scount').value = config.visibleCount; }
+        function saveSettings() { config.projectName = document.getElementById('p-name-input').value.toUpperCase() || "PROJEKTTITEL"; config.visibleCount = parseInt(document.getElementById('scount').value) || 20; localStorage.setItem('bw_config', JSON.stringify(config)); document.getElementById('header-project').innerText = config.projectName; renderList(); toggleSettings(); }
+        function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
+        function showConfirm(title, msg, action) { currentPendingAction = action; document.getElementById('confirm-title').innerText = title; document.getElementById('confirm-msg').innerText = msg; document.getElementById('confirm-modal').classList.remove('hidden'); document.getElementById('confirm-yes').onclick = () => closeConfirm(true); }
+        function closeConfirm(approved) { document.getElementById('confirm-modal').classList.add('hidden'); if(approved && currentPendingAction) applyAssignment(funken.find(r => r.id === currentPendingAction.id), currentPendingAction); currentPendingAction = null; processQueue(); }
+
+        // GESTURE (Identisch)
+        let initialDist = -1;
+        const mainArea = document.getElementById('main-scroll');
+        mainArea.addEventListener('touchstart', (e) => { if (e.touches.length === 2) initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); }, {passive: true});
+        mainArea.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialDist > 0) {
+                const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                const diff = currentDist - initialDist;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0 && config.view !== 'detail') setView('detail');
+                    if (diff < 0 && config.view !== 'matrix') setView('matrix');
+                    initialDist = currentDist;
+                }
+            }
+        }, {passive: true});
+        mainArea.addEventListener('touchend', () => { initialDist = -1; });
 
         init();
     </script>
