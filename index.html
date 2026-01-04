@@ -60,6 +60,14 @@
     <main class="flex-grow flex flex-col p-4 lg:p-6 gap-4 overflow-y-auto" id="main-scroll">
         <section class="w-full lg:max-w-4xl mx-auto flex-shrink-0">
             <div class="bg-card-black rounded-[2rem] shadow-2xl p-5 border border-white/5 custom-shadow">
+                <div class="flex justify-between items-center mb-2 px-2">
+                    <span class="text-[10px] font-bold text-gray-600 uppercase tracking-[0.2em]">Funk-Log</span>
+                    <button onclick="confirmClearChat()" class="text-gray-600 hover:text-bw-gold transition p-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
                 <div id="chat-box" class="h-80 lg:h-64 overflow-y-auto space-y-3 mb-3 p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-white"></div>
                 <div class="relative">
                     <textarea id="chat-in" rows="2" onkeydown="handleChatKey(event)" class="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-bw-gold text-white transition resize-none font-bold placeholder-gray-700 text-sm" placeholder="Befehl..."></textarea>
@@ -343,24 +351,51 @@
         function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); document.getElementById('p-name-input').value = config.projectName; document.getElementById('scount').value = config.visibleCount; }
         function saveSettings() { config.projectName = document.getElementById('p-name-input').value.toUpperCase() || "PROJEKTTITEL"; config.visibleCount = parseInt(document.getElementById('scount').value) || 20; localStorage.setItem('bw_config', JSON.stringify(config)); document.getElementById('header-project').innerText = config.projectName; renderList(); toggleSettings(); }
         function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
-       function showConfirm(title, msg, action, isDefektQuery = false) {
+     function showConfirm(title, msg, action, isDefektQuery = false) {
     currentPendingAction = action;
-    document.getElementById('confirm-title').innerText = title;
-    document.getElementById('confirm-msg').innerText = msg;
-    document.getElementById('confirm-modal').classList.remove('hidden');
-    
-    // JA-BUTTON
-    const yesBtn = document.getElementById('confirm-yes');
-    yesBtn.onclick = async () => {
-        if (isDefektQuery) {
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-title');
+    const msgEl = document.getElementById('confirm-msg');
+    const btnContainer = document.querySelector('#confirm-modal .flex-col');
+
+    titleEl.innerText = title;
+    msgEl.innerText = msg;
+    modal.classList.remove('hidden');
+
+    if (isDefektQuery) {
+        // 3-Button Layout für Defekt
+        btnContainer.innerHTML = `
+            <button id="btn-ja" class="w-full bg-bw-gold text-black font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Ja (Defekt + Frei)</button>
+            <button id="btn-nein" class="w-full bg-white/10 text-white font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Nein (Nur Defekt)</button>
+            <button id="btn-abbruch" class="w-full bg-transparent text-gray-500 font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Abbrechen</button>
+        `;
+        document.getElementById('btn-ja').onclick = async () => {
             await updateFunkeDB(action.id, { is_broken: true, status: 'frei', user: '', has_headset: false });
-        } else {
+            finishConfirm();
+        };
+        document.getElementById('btn-nein').onclick = async () => {
+            await updateFunkeDB(action.id, { is_broken: true });
+            finishConfirm();
+        };
+        document.getElementById('btn-abbruch').onclick = () => finishConfirm();
+    } else {
+        // Standard 2-Button Layout
+        btnContainer.innerHTML = `
+            <button id="confirm-yes" class="w-full bg-bw-gold text-black font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Ja, ausführen</button>
+            <button onclick="closeConfirm(false)" class="w-full bg-white/5 text-gray-500 font-bold p-4 rounded-2xl uppercase text-xs tracking-widest">Abbrechen</button>
+        `;
+        document.getElementById('confirm-yes').onclick = () => {
             applyAssignment(funken.find(r => r.id === action.id), action);
-        }
-        document.getElementById('confirm-modal').classList.add('hidden');
-        currentPendingAction = null;
-        processQueue();
-    };
+            finishConfirm();
+        };
+    }
+}
+
+function finishConfirm() {
+    document.getElementById('confirm-modal').classList.add('hidden');
+    currentPendingAction = null;
+    processQueue();
+}
 
     // NEIN/ABBRECHEN-BUTTON (mit neuer Logik für Defekt)
     const modalDiv = document.getElementById('confirm-modal');
@@ -397,6 +432,50 @@
         mainArea.addEventListener('touchend', () => { initialDist = -1; });
 
         init();
+        // Chat leeren
+function confirmClearChat() {
+    showConfirm("Chat leeren?", "Möchtest du wirklich den gesamten Chat-Verlauf für alle löschen?", { type: 'custom', execute: async () => {
+        await sb.from('chat_messages').delete().neq('id', 0);
+        messages = [];
+        updateChat();
+    }});
+}
+
+// Alle Funken frei
+function confirmClearAllRadios() {
+    showConfirm("ALLE GERÄTE FREIGEBEN?", "Dies setzt alle Funkgeräte auf FREI zurück. Defekte bleiben erhalten.", { type: 'custom', execute: async () => {
+        await sb.from('funken').update({ status: 'frei', user: '', has_headset: false }).eq('is_broken', false);
+        // Falls auch Defekte weg sollen, einfach das .eq weglassen
+    }});
+}
+
+// Update für die processQueue, um die 'custom' actions zu handhaben
+async function processQueue() {
+    if (actionQueue.length === 0 || currentPendingAction) return;
+    const action = actionQueue.shift();
+
+    if (action.type === 'custom') {
+        await action.execute();
+        processQueue();
+        return;
+    }
+
+    const radio = funken.find(r => r.id === action.id);
+    if(!radio) { processQueue(); return; }
+
+    if(action.isFree) { await clearFunke(action.id); processQueue(); return; }
+    
+    if(action.isDefekt) {
+        if (radio.status === 'besetzt') {
+            showConfirm("⚠️ DEFEKT & BELEGT", `#${radio.id} ist noch belegt. Soll das Gerät beim Markieren als DEFEKT auch gleich freigegeben werden?`, action, true);
+            return;
+        }
+        await updateFunkeDB(action.id, { is_broken: true });
+        processQueue();
+        return;
+    }
+    // ... restliche Assignment Logik bleibt ...
+}
     </script>
 </body>
 </html>
