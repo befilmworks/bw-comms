@@ -2,245 +2,90 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BW COMMS | CLOUD</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BW COMMS CLOUD</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Alef:wght@400;700&display=swap');
-        body { font-family: 'Alef', sans-serif; background-color: #1a1a1a; color: #ffffff; -webkit-tap-highlight-color: transparent; overflow-x: hidden; overscroll-behavior-y: contain; }
-        .font-numeric { font-family: Arial, Helvetica, sans-serif; }
-        .text-bw-gold { color: #dec628; }
-        .bg-bw-gold { background-color: #dec628; }
-        .color-free { color: #10b981; } .bg-free { background-color: #10b981; }
-        .color-busy { color: #ef4444; } .bg-busy { background-color: #ef4444; }
-        .color-broken { color: #f59e0b; } .bg-broken { background-color: #f59e0b; }
-        .bg-card-black { background-color: #000000; }
-        .custom-shadow { box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.7); }
-        @keyframes highlight-pulse { 0% { border-color: #dec628; box-shadow: 0 0 0px #dec628; } 50% { border-color: #dec628; box-shadow: 0 0 20px #dec628; } 100% { border-color: rgba(255,255,255,0.1); box-shadow: 0 0 0px #dec628; } }
-        .jump-highlight { animation: highlight-pulse 1.5s ease-out; }
+        body { background-color: #1a1a1a; color: white; font-family: sans-serif; }
+        .bg-card { background-color: #000000; border: 1px solid rgba(255,255,255,0.1); }
+        .status-free { border-top: 4px solid #10b981; }
+        .status-busy { border-top: 4px solid #ef4444; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
-
-    <header class="sticky top-0 bg-black p-4 flex items-center justify-between shadow-2xl z-50 border-b border-white/10">
-        <div class="flex items-center gap-3">
-            <img src="https://i.ibb.co/Lz0D7mF/Logo-quadratisch.png" alt="BW" class="h-10 w-10 object-contain">
-            <div>
-                <h1 id="header-project" class="text-white font-bold text-lg tracking-tight uppercase leading-tight">BW CLOUD v3.4</h1>
-                <div class="flex gap-2.5 mt-0.5">
-                    <span id="stat-free" class="text-[9px] font-bold text-free font-numeric uppercase">FREE: -</span>
-                    <span id="stat-busy" class="text-[9px] font-bold text-busy font-numeric uppercase">BUSY: -</span>
-                    <span id="stat-broken" class="text-[9px] font-bold text-broken font-numeric uppercase">FAIL: -</span>
-                </div>
-            </div>
-        </div>
-        <div class="flex gap-2">
-            <div id="sync-indicator" class="w-2 h-2 rounded-full bg-gray-600 mt-2 mr-2"></div>
-            <div class="bg-white/5 p-1 rounded-xl flex gap-1 border border-white/10">
-                <button onclick="setView('detail')" id="btn-detail" class="w-8 h-8 flex items-center justify-center rounded-lg transition"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/></svg></button>
-                <button onclick="setView('matrix')" id="btn-matrix" class="w-8 h-8 flex items-center justify-center rounded-lg transition"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg></button>
-            </div>
-        </div>
+<body class="p-4">
+    <header class="mb-6 flex justify-between items-center">
+        <h1 class="text-xl font-bold text-yellow-500 underline">BW COMMS PRO v3.5</h1>
+        <div id="status-dot" class="w-3 h-3 rounded-full bg-red-500"></div>
     </header>
 
-    <main class="flex-grow flex flex-col p-4 lg:p-6 gap-4 overflow-y-auto" id="main-scroll">
-        <section class="w-full lg:max-w-4xl mx-auto flex-shrink-0">
-            <div class="bg-card-black rounded-[2rem] shadow-2xl p-5 border border-white/5 custom-shadow">
-                <div id="chat-box" class="h-80 lg:h-64 overflow-y-auto space-y-3 mb-3 p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-white"></div>
-                <div class="relative">
-                    <textarea id="chat-in" rows="2" onkeydown="handleChatKey(event)" class="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-bw-gold text-white transition resize-none font-bold placeholder-gray-700 text-sm" placeholder="Befehl..."></textarea>
-                    <button onclick="onSend()" class="w-full mt-2 bg-bw-gold text-black font-bold p-3.5 rounded-2xl uppercase text-[11px] tracking-[0.15em] active:scale-95 transition">Senden</button>
-                </div>
-            </div>
-        </section>
+    <div id="debug-msg" class="bg-red-900/50 text-red-200 p-2 rounded mb-4 text-xs hidden"></div>
 
-        <div class="w-full flex items-center gap-4 my-2 opacity-30">
-            <div class="h-[1px] bg-white/20 flex-grow"></div>
-            <div class="w-1.5 h-1.5 rounded-full bg-bw-gold"></div>
-            <div class="h-[1px] bg-white/20 flex-grow"></div>
+    <div class="bg-card p-4 rounded-xl mb-6 shadow-xl">
+        <div id="chat-box" class="h-40 overflow-y-auto mb-2 text-sm border-b border-white/10 pb-2"></div>
+        <div class="flex gap-2">
+            <input id="chat-in" class="flex-grow bg-white/5 border border-white/20 p-2 rounded text-sm" placeholder="Nachricht...">
+            <button onclick="onSend()" class="bg-yellow-500 text-black px-4 py-2 rounded font-bold">SEND</button>
         </div>
+    </div>
 
-        <section id="touch-area" class="w-full">
-            <div id="list-grid" class="grid gap-4 pb-24"></div>
-        </section>
-    </main>
+    <div id="list-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <p class="col-span-full text-center py-10 opacity-50">Lade Datenbank...</p>
+    </div>
 
     <script>
-        // CONFIG & SUPABASE SETUP
         const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
-const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
-        const supabase = supabase.createClient(SUB_URL, SUB_KEY);
-
-        let config = { visibleCount: 40, view: 'detail' };
-        let funken = [];
-        let messages = [];
-
-        // INITIAL LOAD
-        async function init() {
-            await fetchAllData();
-            renderList();
-            updateChatUI();
-            
-            // REALTIME SUBSCRIPTION
-            supabase.channel('custom-all-channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => { fetchAllData(); })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => { 
-                messages.push(payload.new);
-                updateChatUI();
-            })
-            .subscribe();
+        const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
+        
+        // Initialisiere Supabase sicher
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(SUB_URL, SUB_KEY);
+        } catch(e) {
+            document.getElementById('debug-msg').innerText = "Supabase Library nicht geladen!";
+            document.getElementById('debug-msg').classList.remove('hidden');
         }
 
-        async function fetchAllData() {
-            setSyncStatus('syncing');
-            const { data: fData } = await supabase.from('funken').select('*').order('id', { ascending: true });
-            const { data: cData } = await supabase.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
-            
-            if (fData) {
-                funken = fData.map(f => ({ ...f, user: f.user || '', hasHeadset: f.has_headset, isBroken: f.is_broken }));
-                renderList();
-            }
-            if (cData) {
-                messages = cData.reverse();
-                updateChatUI();
-            }
-            setSyncStatus('idle');
-        }
-
-        function setSyncStatus(status) {
-            const el = document.getElementById('sync-indicator');
-            el.className = `w-2 h-2 rounded-full mt-2 mr-2 transition-colors duration-500 ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
-        }
-
-        // DATABASE ACTIONS
-        async function updateFunkeDB(id, updates) {
-            const { error } = await supabase.from('funken').update(updates).eq('id', id);
-            if (error) console.error(error);
-        }
-
-        async function sendChatMessage(type, text) {
-            await supabase.from('chat_messages').insert([{ sender: 'System', text, type }]);
-        }
-
-        // RENDER LOGIC (Identisch zu v3.3 aber mit DB-Anbindung)
-        function renderList() {
-            const grid = document.getElementById('list-grid');
-            if (!funken.length) return;
-            
-            grid.innerHTML = funken.slice(0, config.visibleCount).map(f => {
-                let statusColor = f.isBroken ? 'bg-broken' : (f.status === 'besetzt' ? 'bg-busy' : 'bg-free');
-                let textColor = f.isBroken ? 'color-broken' : (f.status === 'besetzt' ? 'color-busy' : 'color-free');
+        async function loadData() {
+            const dot = document.getElementById('status-dot');
+            try {
+                // Test-Abfrage
+                const { data, error } = await supabase.from('funken').select('*').order('id', { ascending: true });
                 
-                if (config.view === 'matrix') {
-                    return `
-                    <div onclick="jumpToDetail(${f.id})" class="bg-card-black border border-white/5 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer min-h-[70px] active:scale-90 transition">
-                        <span class="font-numeric font-bold text-xs text-bw-gold">#${f.id}</span>
-                        <div class="w-full h-1 my-1 rounded-full ${statusColor}"></div>
-                        <span class="text-[8px] font-bold uppercase truncate w-full text-gray-400">${f.user || '---'}</span>
-                    </div>`;
-                }
+                if (error) throw error;
 
-                return `
-                <div class="relative pt-2" id="card-${f.id}">
-                    <div class="absolute top-0 left-8 right-8 h-2 rounded-t-full ${statusColor}"></div>
-                    <div class="card-body bg-card-black p-5 rounded-[2rem] border border-white/5 flex flex-col relative z-10 custom-shadow">
-                        <div class="flex justify-between items-start mb-3">
-                            <span class="font-numeric font-bold text-2xl tracking-tighter text-bw-gold">#${f.id}</span>
-                            <div class="flex gap-1.5">
-                                <button onclick="toggleBroken(${f.id})" class="w-10 h-10 flex items-center justify-center rounded-xl ${f.isBroken ? 'bg-broken text-black' : 'bg-white/5 text-gray-600'}">⚠️</button>
-                                <button onclick="toggleHeadset(${f.id})" class="w-10 h-10 flex items-center justify-center rounded-xl ${f.hasHeadset ? 'bg-bw-gold text-black' : 'bg-white/5 text-gray-600'}">🎧</button>
-                                <button onclick="clearFunke(${f.id})" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-600 rounded-xl">✕</button>
-                            </div>
-                        </div>
-                        <input type="text" value="${f.user}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
-                        <div class="flex justify-between items-center mt-3">
-                            <span class="text-[9px] font-bold uppercase tracking-widest ${textColor}">${f.isBroken ? 'DEFEKT' : (f.status === 'frei' ? 'Frei' : 'Besetzt')}</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-            updateStats();
+                dot.classList.replace('bg-red-500', 'bg-green-500');
+                renderList(data);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('debug-msg').innerText = "Fehler: " + err.message + " (Hast du SQL ausgeführt?)";
+                document.getElementById('debug-msg').classList.remove('hidden');
+            }
         }
 
-        // ACTIONS
-        async function manualUpdate(id, val) {
-            const user = val.toUpperCase();
-            const status = user.trim() === "" ? 'frei' : 'besetzt';
-            await updateFunkeDB(id, { user, status });
-        }
-
-        async function toggleBroken(id) {
-            const f = funken.find(x => x.id === id);
-            await updateFunkeDB(id, { is_broken: !f.isBroken });
-        }
-
-        async function toggleHeadset(id) {
-            const f = funken.find(x => x.id === id);
-            await updateFunkeDB(id, { has_headset: !f.hasHeadset });
-        }
-
-        async function clearFunke(id) {
-            await updateFunkeDB(id, { status: 'frei', user: '', has_headset: false });
-        }
-
-        // CHAT LOGIC (v3.4 adaptiert für Cloud)
-        async function onSend() {
-            const input = document.getElementById('chat-in');
-            const val = input.value.trim();
-            if(!val) return;
-            await sendChatMessage('user', val);
-            parseAndExecute(val);
-            input.value = '';
-        }
-
-        function parseAndExecute(rawVal) {
-            const t = rawVal.toLowerCase();
-            const numbers = rawVal.match(/\d+/g);
-            if(numbers && /frei|leer|zurück|weg|raus|abgegeben/i.test(t)) {
-                numbers.forEach(n => clearFunke(parseInt(n)));
+        function renderList(items) {
+            const grid = document.getElementById('list-grid');
+            if(!items || items.length === 0) {
+                grid.innerHTML = "<p class='col-span-full'>Tabelle leer. Bitte SQL-Befehl in Supabase ausführen!</p>";
                 return;
             }
-            // ... (Hier kann die komplexe Parsing-Logik aus v3.3 wieder rein)
+            grid.innerHTML = items.map(f => `
+                <div class="bg-card p-3 rounded-lg ${f.status === 'frei' ? 'status-free' : 'status-busy'}">
+                    <div class="text-yellow-500 font-bold">#${f.id}</div>
+                    <div class="text-xs uppercase truncate">${f.user || '---'}</div>
+                </div>
+            `).join('');
         }
 
-        function updateChatUI() {
-            const box = document.getElementById('chat-box');
-            box.innerHTML = messages.map(m => `<div class="flex ${m.type === 'bot' ? 'justify-start' : 'justify-end'} mt-2"><div class="max-w-[85%] p-3 rounded-2xl ${m.type === 'bot' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div></div>`).join('');
-            box.scrollTop = box.scrollHeight;
+        async function onSend() {
+            const input = document.getElementById('chat-in');
+            if(!input.value) return;
+            await supabase.from('chat_messages').insert([{sender: 'User', text: input.value, type: 'user'}]);
+            input.value = '';
+            loadData(); // Refresh
         }
 
-        function setView(mode) {
-            config.view = mode;
-            renderList();
-            const isDetail = mode === 'detail';
-            document.getElementById('btn-detail').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
-            document.getElementById('btn-matrix').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${!isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
-            document.getElementById('list-grid').className = isDetail ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
-        }
-
-        function updateStats() {
-            const current = funken.slice(0, config.visibleCount);
-            document.getElementById('stat-free').innerText = `FREE: ${current.filter(f => f.status === 'frei' && !f.isBroken).length}`;
-            document.getElementById('stat-busy').innerText = `BUSY: ${current.filter(f => f.status === 'besetzt').length}`;
-            document.getElementById('stat-broken').innerText = `FAIL: ${current.filter(f => f.isBroken).length}`;
-        }
-
-        function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
-        function jumpToDetail(id) {
-            setView('detail');
-            setTimeout(() => {
-                const el = document.getElementById(`card-${id}`);
-                if(el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    const body = el.querySelector('.card-body');
-                    body.classList.add('jump-highlight');
-                    setTimeout(() => body.classList.remove('jump-highlight'), 1500);
-                }
-            }, 100);
-        }
-
-        init();
+        loadData();
     </script>
 </body>
 </html>
