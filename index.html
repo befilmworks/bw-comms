@@ -37,29 +37,40 @@
         </div>
         <div class="flex gap-2">
             <div id="sync-indicator" class="w-2 h-2 rounded-full bg-gray-600 mt-2 mr-2"></div>
-            <div class="bg-white/5 p-1 rounded-xl flex gap-1 border border-white/10">
-                <button onclick="setView('detail')" id="btn-detail" class="w-8 h-8 flex items-center justify-center rounded-lg transition"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/></svg></button>
-                <button onclick="setView('matrix')" id="btn-matrix" class="w-8 h-8 flex items-center justify-center rounded-lg transition"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg></button>
-            </div>
+            <button onclick="toggleOptions()" class="p-2 bg-white/5 rounded-xl border border-white/10 text-bw-gold">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+            </button>
         </div>
     </header>
+
+    <div id="options-menu" class="fixed inset-y-0 right-0 w-72 bg-black/95 backdrop-blur-xl z-[60] transform translate-x-full transition-transform duration-300 border-l border-white/10 p-6 flex flex-col gap-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-bw-gold font-bold uppercase tracking-widest text-sm">Menü</h2>
+            <button onclick="toggleOptions()" class="text-white">✕</button>
+        </div>
+        <div class="space-y-4">
+            <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                <p class="text-[10px] text-gray-500 uppercase font-bold mb-2">Ansicht</p>
+                <div class="flex gap-2">
+                    <button onclick="setView('detail')" id="btn-detail" class="flex-grow p-2 rounded-lg text-[10px] font-bold uppercase transition">Detail</button>
+                    <button onclick="setView('matrix')" id="btn-matrix" class="flex-grow p-2 rounded-lg text-[10px] font-bold uppercase transition">Matrix</button>
+                </div>
+            </div>
+            <input type="text" id="search-in" oninput="renderList()" placeholder="SUCHEN..." class="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs font-bold uppercase outline-none focus:border-bw-gold transition">
+            <button onclick="resetAll()" class="w-full bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-xl text-[10px] font-bold uppercase">Alle zurücksetzen</button>
+        </div>
+    </div>
 
     <main class="flex-grow flex flex-col p-4 lg:p-6 gap-4 overflow-y-auto" id="main-scroll">
         <section class="w-full lg:max-w-4xl mx-auto flex-shrink-0">
             <div class="bg-card-black rounded-[2rem] shadow-2xl p-5 border border-white/5 custom-shadow">
-                <div id="chat-box" class="h-80 lg:h-64 overflow-y-auto space-y-3 mb-3 p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-white"></div>
+                <div id="chat-box" class="h-64 overflow-y-auto space-y-3 mb-3 p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-white"></div>
                 <div class="relative">
                     <textarea id="chat-in" rows="2" onkeydown="handleChatKey(event)" class="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-bw-gold text-white transition resize-none font-bold placeholder-gray-700 text-sm" placeholder="Befehl..."></textarea>
                     <button onclick="onSend()" class="w-full mt-2 bg-bw-gold text-black font-bold p-3.5 rounded-2xl uppercase text-[11px] tracking-[0.15em] active:scale-95 transition">Senden</button>
                 </div>
             </div>
         </section>
-
-        <div class="w-full flex items-center gap-4 my-2 opacity-30">
-            <div class="h-[1px] bg-white/20 flex-grow"></div>
-            <div class="w-1.5 h-1.5 rounded-full bg-bw-gold"></div>
-            <div class="h-[1px] bg-white/20 flex-grow"></div>
-        </div>
 
         <section id="touch-area" class="w-full">
             <div id="list-grid" class="grid gap-4 pb-24"></div>
@@ -71,7 +82,6 @@
         const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
         const sb = supabase.createClient(SUB_URL, SUB_KEY);
 
-        // KORREKTUR: visibleCount auf 100 gesetzt
         let config = { visibleCount: 100, view: 'detail' };
         let funken = [];
         let messages = [];
@@ -80,8 +90,8 @@
             await fetchAllData();
             setView('detail'); 
             
-            sb.channel('custom-all-channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => { fetchAllData(); })
+            sb.channel('db-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => fetchAllData())
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => { 
                 messages.push(payload.new);
                 updateChatUI();
@@ -95,7 +105,7 @@
             const { data: cData } = await sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(20);
             
             if (fData) {
-                funken = fData.map(f => ({ ...f, user: f.user || '', hasHeadset: f.has_headset, isBroken: f.is_broken }));
+                funken = fData.map(f => ({ ...f, hasHeadset: f.has_headset, isBroken: f.is_broken }));
                 renderList();
             }
             if (cData) {
@@ -110,19 +120,32 @@
             if(el) el.className = `w-2 h-2 rounded-full mt-2 mr-2 transition-colors duration-500 ${status === 'syncing' ? 'bg-bw-gold animate-pulse' : 'bg-green-500'}`;
         }
 
-        async function updateFunkeDB(id, updates) {
-            await sb.from('funken').update(updates).eq('id', id);
+        function toggleOptions() {
+            const menu = document.getElementById('options-menu');
+            menu.classList.toggle('translate-x-full');
         }
 
-        async function sendChatMessage(sender, text) {
-            await sb.from('chat_messages').insert([{ sender, text, type: sender === 'System' ? 'bot' : 'user' }]);
+        function setView(mode) {
+            config.view = mode;
+            const btnD = document.getElementById('btn-detail');
+            const btnM = document.getElementById('btn-matrix');
+            btnD.className = mode === 'detail' ? 'flex-grow p-2 rounded-lg text-[10px] font-bold uppercase bg-bw-gold text-black' : 'flex-grow p-2 rounded-lg text-[10px] font-bold uppercase bg-white/5 text-white';
+            btnM.className = mode === 'matrix' ? 'flex-grow p-2 rounded-lg text-[10px] font-bold uppercase bg-bw-gold text-black' : 'flex-grow p-2 rounded-lg text-[10px] font-bold uppercase bg-white/5 text-white';
+            renderList();
         }
 
         function renderList() {
             const grid = document.getElementById('list-grid');
-            if (!grid || !funken.length) return;
+            const searchTerm = document.getElementById('search-in')?.value.toLowerCase() || "";
+            if (!grid) return;
             
-            grid.innerHTML = funken.slice(0, config.visibleCount).map(f => {
+            grid.className = config.view === 'detail' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
+
+            const filtered = funken.filter(f => 
+                f.id.toString().includes(searchTerm) || (f.user && f.user.toLowerCase().includes(searchTerm))
+            );
+
+            grid.innerHTML = filtered.map(f => {
                 let statusColor = f.isBroken ? 'bg-broken' : (f.status === 'besetzt' ? 'bg-busy' : 'bg-free');
                 let textColor = f.isBroken ? 'color-broken' : (f.status === 'besetzt' ? 'color-busy' : 'color-free');
                 
@@ -145,7 +168,7 @@
                                 <button onclick="clearFunke(${f.id})" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-600 rounded-xl">✕</button>
                             </div>
                         </div>
-                        <input type="text" value="${f.user}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
+                        <input type="text" value="${f.user || ''}" onblur="manualUpdate(${f.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur()" placeholder="VERFÜGBAR" class="w-full bg-transparent border-b border-white/10 font-bold uppercase py-1 outline-none focus:border-bw-gold text-white text-sm">
                         <div class="flex justify-between items-center mt-3">
                             <span class="text-[9px] font-bold uppercase tracking-widest ${textColor}">${f.isBroken ? 'DEFEKT' : (f.status === 'frei' ? 'Frei' : 'Besetzt')}</span>
                         </div>
@@ -158,28 +181,34 @@
         async function manualUpdate(id, val) {
             const user = val.toUpperCase();
             const status = user.trim() === "" ? 'frei' : 'besetzt';
-            await updateFunkeDB(id, { user, status });
+            await sb.from('funken').update({ user, status }).eq('id', id);
         }
 
         async function toggleBroken(id) {
             const f = funken.find(x => x.id === id);
-            await updateFunkeDB(id, { is_broken: !f.isBroken });
+            await sb.from('funken').update({ is_broken: !f.isBroken }).eq('id', id);
         }
 
         async function toggleHeadset(id) {
             const f = funken.find(x => x.id === id);
-            await updateFunkeDB(id, { has_headset: !f.hasHeadset });
+            await sb.from('funken').update({ has_headset: !f.hasHeadset }).eq('id', id);
         }
 
         async function clearFunke(id) {
-            await updateFunkeDB(id, { status: 'frei', user: '', has_headset: false, is_broken: false });
+            await sb.from('funken').update({ status: 'frei', user: '', has_headset: false, is_broken: false }).eq('id', id);
+        }
+
+        async function resetAll() {
+            if(!confirm("ALLE FUNKEN ZURÜCKSETZEN?")) return;
+            for(let i=1; i<=100; i++) await clearFunke(i);
+            toggleOptions();
         }
 
         async function onSend() {
             const input = document.getElementById('chat-in');
             const val = input.value.trim();
             if(!val) return;
-            await sendChatMessage('User', val);
+            await sb.from('chat_messages').insert([{ sender: 'User', text: val, type: 'user' }]);
             parseAndExecute(val);
             input.value = '';
         }
@@ -209,23 +238,10 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        function setView(mode) {
-            config.view = mode;
-            renderList();
-            const isDetail = mode === 'detail';
-            document.getElementById('btn-detail').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
-            document.getElementById('btn-matrix').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${!isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
-            document.getElementById('list-grid').className = isDetail ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
-        }
-
         function updateStats() {
-            const sFree = document.getElementById('stat-free');
-            const sBusy = document.getElementById('stat-busy');
-            const sBroken = document.getElementById('stat-broken');
-            if(!sFree) return;
-            sFree.innerText = `FREE: ${funken.filter(f => f.status === 'frei' && !f.isBroken).length}`;
-            sBusy.innerText = `BUSY: ${funken.filter(f => f.status === 'besetzt').length}`;
-            sBroken.innerText = `FAIL: ${funken.filter(f => f.isBroken).length}`;
+            document.getElementById('stat-free').innerText = `FREE: ${funken.filter(f => f.status === 'frei' && !f.isBroken).length}`;
+            document.getElementById('stat-busy').innerText = `BUSY: ${funken.filter(f => f.status === 'besetzt').length}`;
+            document.getElementById('stat-broken').innerText = `FAIL: ${funken.filter(f => f.isBroken).length}`;
         }
 
         function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }
