@@ -35,26 +35,34 @@
         </div>
     </div>
 
-    <div id="radio-grid" class="grid-container">
-        </div>
+    <div id="radio-grid" class="grid-container"></div>
 
     <script>
+        // HIER WAR DER FEHLER: Nur eine Deklaration erlaubt!
         const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
         const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
-        const supabase = window.supabase.createClient(SUB_URL, SUB_KEY);
+        const sbClient = window.supabase.createClient(SUB_URL, SUB_KEY);
 
         async function initApp() {
-            // 1. Daten laden
-            const { data: funken } = await supabase.from('funken').select('*').order('id', { ascending: true });
-            if (funken) {
-                renderGrid(funken);
-                document.getElementById('sync-dot').classList.replace('bg-red-500', 'bg-green-500');
-            }
+            try {
+                const { data: funken, error } = await sbClient.from('funken').select('*').order('id', { ascending: true });
+                if (error) throw error;
+                if (funken) {
+                    renderGrid(funken);
+                    document.getElementById('sync-dot').classList.replace('bg-red-500', 'bg-green-500');
+                }
 
-            // 2. Realtime Abo
-            supabase.channel('db-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, payload => {
-                location.reload(); // Einfachster Sync
-            }).subscribe();
+                sbClient.channel('db-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'funken' }, () => {
+                    fetchUpdate();
+                }).subscribe();
+            } catch (err) {
+                console.error("Fehler beim Laden:", err);
+            }
+        }
+
+        async function fetchUpdate() {
+            const { data } = await sbClient.from('funken').select('*').order('id', { ascending: true });
+            if (data) renderGrid(data);
         }
 
         function renderGrid(items) {
@@ -73,7 +81,7 @@
         async function sendMsg() {
             const input = document.getElementById('chat-input');
             if(!input.value) return;
-            await supabase.from('chat_messages').insert([{sender: 'Admin', text: input.value}]);
+            await sbClient.from('chat_messages').insert([{sender: 'Admin', text: input.value}]);
             input.value = '';
         }
 
