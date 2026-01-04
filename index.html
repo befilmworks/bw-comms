@@ -67,13 +67,12 @@
     </main>
 
     <script>
-        // CONFIG & SUPABASE SETUP
         const SUB_URL = "https://wvimqnjbpzdklrxorlpo.supabase.co";
         const SUB_KEY = "sb_publishable_YlyScDFX7pEa1oEWWoNx-A_R_h3-jm9";
-        // FIXED: Benenne die Instanz 'sb', um Konflikt mit der Library 'supabase' zu vermeiden
         const sb = supabase.createClient(SUB_URL, SUB_KEY);
 
-        let config = { visibleCount: 40, view: 'detail' };
+        // KORREKTUR: visibleCount auf 100 gesetzt
+        let config = { visibleCount: 100, view: 'detail' };
         let funken = [];
         let messages = [];
 
@@ -115,8 +114,8 @@
             await sb.from('funken').update(updates).eq('id', id);
         }
 
-        async function sendChatMessage(type, text) {
-            await sb.from('chat_messages').insert([{ sender: 'User', text, type }]);
+        async function sendChatMessage(sender, text) {
+            await sb.from('chat_messages').insert([{ sender, text, type: sender === 'System' ? 'bot' : 'user' }]);
         }
 
         function renderList() {
@@ -180,7 +179,7 @@
             const input = document.getElementById('chat-in');
             const val = input.value.trim();
             if(!val) return;
-            await sendChatMessage('user', val);
+            await sendChatMessage('User', val);
             parseAndExecute(val);
             input.value = '';
         }
@@ -194,7 +193,7 @@
                 numbers.forEach(n => clearFunke(parseInt(n)));
             } else {
                 const name = rawVal.replace(/[0-9]/g, '').trim().toUpperCase();
-                if(name.length > 2) {
+                if(name.length >= 2) {
                     numbers.forEach(n => manualUpdate(parseInt(n), name));
                 }
             }
@@ -203,7 +202,10 @@
         function updateChatUI() {
             const box = document.getElementById('chat-box');
             if(!box) return;
-            box.innerHTML = messages.map(m => `<div class="flex ${m.sender === 'System' ? 'justify-start' : 'justify-end'} mt-2"><div class="max-w-[85%] p-3 rounded-2xl ${m.sender === 'System' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div></div>`).join('');
+            box.innerHTML = messages.map(m => `
+                <div class="flex ${m.sender === 'System' ? 'justify-start' : 'justify-end'} mt-2">
+                    <div class="max-w-[85%] p-3 rounded-2xl ${m.sender === 'System' ? 'bg-bw-gold text-black' : 'bg-white/10 text-white'} font-bold text-[11px] whitespace-pre-wrap">${m.text}</div>
+                </div>`).join('');
             box.scrollTop = box.scrollHeight;
         }
 
@@ -211,12 +213,9 @@
             config.view = mode;
             renderList();
             const isDetail = mode === 'detail';
-            const btnD = document.getElementById('btn-detail');
-            const btnM = document.getElementById('btn-matrix');
-            if(btnD) btnD.className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
-            if(btnM) btnM.className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${!isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
-            const grid = document.getElementById('list-grid');
-            if(grid) grid.className = isDetail ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
+            document.getElementById('btn-detail').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
+            document.getElementById('btn-matrix').className = `w-8 h-8 flex items-center justify-center rounded-lg transition ${!isDetail ? 'bg-bw-gold text-black' : 'text-gray-400 bg-white/5'}`;
+            document.getElementById('list-grid').className = isDetail ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20" : "grid grid-cols-3 md:grid-cols-5 xl:grid-cols-8 gap-2 pb-20";
         }
 
         function updateStats() {
